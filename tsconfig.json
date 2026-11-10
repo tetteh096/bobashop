@@ -1,0 +1,3 @@
+{
+  "extends": "@bobashop/config/tsconfig.base.json"
+}

@@ -1,0 +1,22 @@
+{
+  "name": "@bobashop/api",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./*": "./src/*.ts"
+  },
+  "scripts": {
+    "check-types": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@bobashop/auth": "workspace:*",
+    "@bobashop/db": "workspace:*",
+    "@trpc/client": "catalog:",
+    "@trpc/server": "catalog:",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@bobashop/config": "workspace:*",
+    "typescript": "catalog:"
+  }
+}

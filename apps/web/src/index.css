@@ -1,0 +1,104 @@
+@import "@bobashop/ui/globals.css";
+
+/* Little Pearl palette: tea green, paper cream, brown sugar and clay. */
+:root {
+  --background: #eee7da;
+  --foreground: #1a1f1b;
+  --card: #f4efe6;
+  --card-foreground: #1a1f1b;
+  --popover: #f4efe6;
+  --popover-foreground: #1a1f1b;
+  --primary: #7e4632;
+  --primary-foreground: #f4eee3;
+  --secondary: #e4dccb;
+  --secondary-foreground: #1a1f1b;
+  --muted: #e4dccb;
+  --muted-foreground: #5e584d;
+  --accent: #c9714f;
+  --accent-foreground: #ffffff;
+  --border: #cfc6b4;
+  --input: #cfc6b4;
+  --ring: #7e4632;
+  --radius: 0.25rem;
+}
+
+@theme inline {
+  --font-sans: var(--font-inter-tight), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-display: var(--font-jost), var(--font-inter-tight), sans-serif;
+
+  /* Brown sugar: primary buttons and active states. */
+  --color-brand: #7e4632;
+  --color-brand-dark: #693a29;
+  /* Tea green: dark grounds, footer, overlays. */
+  --color-brand-deep: #18211c;
+  --color-night: #111814;
+  --color-ink: #1a1f1b;
+  --color-subtle: #5e584d;
+  /* Clay: the round "+" buttons, badges and small highlights. */
+  --color-gold: #c9714f;
+  --color-gold-dark: #a85a3c;
+  --color-gold-soft: #f1dccf;
+  --color-tint: #e4dccb;
+  --color-tint-strong: #d8cdb7;
+  --color-sale: #a63f28;
+  --color-paper: #eee7da;
+  --color-card: #f4efe6;
+  --color-line: #cfc6b4;
+  --color-leaf: #3f6b45;
+  /* Tomato: the one loud colour, saved for calls to action and things that must stand out.
+     #d23a24 is for fills under white text (4.8:1); #b92e1a for red text on cream (4.9:1). */
+  --color-tomato: #d23a24;
+  --color-tomato-dark: #b92e1a;
+  --color-tomato-soft: #f8d9d1;
+  --color-cream: #f4eee3;
+
+  /* Kept so older class names still land on the new palette. */
+  --color-butter: #eee7da;
+  --color-butter-deep: #e4dccb;
+  --color-butter-soft: #f4efe6;
+}
+
+@layer base {
+  body {
+    @apply selection:bg-brand selection:text-cream;
+  }
+}
+
+@keyframes marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+.animate-marquee {
+  animation: marquee 40s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-marquee {
+    animation: none;
+  }
+}
+
+/* iPhones zoom the whole page when a field under 16px is focused, then pan around
+   while typing, which feels like the layout shaking. */
+@media (max-width: 767px) {
+  input,
+  select,
+  textarea {
+    font-size: 16px;
+  }
+}
+
+/* Nothing should ever make the page pan sideways on a phone. On <html> this applies to the
+   viewport (so the sticky header keeps working); overscroll stops the sideways bounce. */
+html {
+  overflow-x: hidden;
+  overscroll-behavior-x: none;
+}
+body {
+  overflow-x: clip;
+}

@@ -1,0 +1,21 @@
+{
+  "name": "@bobashop/auth",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./*": "./src/*.ts"
+  },
+  "scripts": {
+    "check-types": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@bobashop/db": "workspace:*",
+    "better-auth": "catalog:",
+    "mongodb": "^7.6.0",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@bobashop/config": "workspace:*",
+    "typescript": "catalog:"
+  }
+}
