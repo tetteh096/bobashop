@@ -143,12 +143,19 @@ Declared in `apps/web/.env.schema` (varlock validates them at build and start):
 
 | Variable | Required | Notes |
 | --- | --- | --- |
-| `DATABASE_URL` | yes | MongoDB connection string, e.g. a MongoDB Atlas `mongodb+srv://…` URI with the database name in the path |
-| `BETTER_AUTH_SECRET` | yes | At least 32 characters. Generate with `openssl rand -base64 32` |
+| `DATABASE_URL` | for accounts and orders | MongoDB connection string, e.g. a MongoDB Atlas `mongodb+srv://…` URI with the database name in the path |
+| `BETTER_AUTH_SECRET` | for accounts | At least 32 characters. Generate with `openssl rand -base64 32` |
 | `BETTER_AUTH_URL` | no on Vercel | Defaults to the deployment URL from Vercel's system env vars |
 | `PAYSTACK_SECRET_KEY` | for payments | `sk_test_…` or `sk_live_…`. Without it, checkout asks customers to call instead |
 
 ## Deploying to Vercel
+
+**As a prototype (no environment variables):** import the repo in Vercel and deploy. With no
+`DATABASE_URL` the site runs in prototype mode: the menu, drink pages, bag, discount codes and
+checkout all work; sign-in is hidden; and checkout asks customers to call instead of paying.
+Add `DATABASE_URL` and `BETTER_AUTH_SECRET` later and accounts switch on, with no code change.
+
+**Fully, with accounts and payments:**
 
 1. **Database:** create a MongoDB Atlas cluster. Under *Network Access*, allow `0.0.0.0/0`
    (Vercel functions don't have fixed IPs). Copy the connection string into `DATABASE_URL`.
