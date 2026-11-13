@@ -1,61 +1,62 @@
 @import "@bobashop/ui/globals.css";
 
-/* Little Pearl palette: tea green, paper cream, brown sugar and clay. */
+/* Bobalicious palette, sampled from their promo posters: mango yellow, deep purple,
+   chocolate brown (the logo lettering), cream and promo red. */
 :root {
-  --background: #eee7da;
-  --foreground: #1a1f1b;
-  --card: #f4efe6;
-  --card-foreground: #1a1f1b;
-  --popover: #f4efe6;
-  --popover-foreground: #1a1f1b;
-  --primary: #7e4632;
-  --primary-foreground: #f4eee3;
-  --secondary: #e4dccb;
-  --secondary-foreground: #1a1f1b;
-  --muted: #e4dccb;
-  --muted-foreground: #5e584d;
-  --accent: #c9714f;
-  --accent-foreground: #ffffff;
-  --border: #cfc6b4;
-  --input: #cfc6b4;
-  --ring: #7e4632;
-  --radius: 0.25rem;
+  --background: #fff7e8;
+  --foreground: #2a1426;
+  --card: #fffbf3;
+  --card-foreground: #2a1426;
+  --popover: #fffbf3;
+  --popover-foreground: #2a1426;
+  --primary: #884c2b;
+  --primary-foreground: #fff7e8;
+  --secondary: #f6e6c4;
+  --secondary-foreground: #2a1426;
+  --muted: #f6e6c4;
+  --muted-foreground: #6b5462;
+  --accent: #fbad1c;
+  --accent-foreground: #2a1426;
+  --border: #ead6b0;
+  --input: #ead6b0;
+  --ring: #884c2b;
+  --radius: 0.75rem;
 }
 
 @theme inline {
   --font-sans: var(--font-inter-tight), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  --font-display: var(--font-jost), var(--font-inter-tight), sans-serif;
+  --font-display: var(--font-fredoka), var(--font-inter-tight), sans-serif;
 
-  /* Brown sugar: primary buttons and active states. */
-  --color-brand: #7e4632;
-  --color-brand-dark: #693a29;
-  /* Tea green: dark grounds, footer, overlays. */
-  --color-brand-deep: #18211c;
-  --color-night: #111814;
-  --color-ink: #1a1f1b;
-  --color-subtle: #5e584d;
-  /* Clay: the round "+" buttons, badges and small highlights. */
-  --color-gold: #c9714f;
-  --color-gold-dark: #a85a3c;
-  --color-gold-soft: #f1dccf;
-  --color-tint: #e4dccb;
-  --color-tint-strong: #d8cdb7;
-  --color-sale: #a63f28;
-  --color-paper: #eee7da;
-  --color-card: #f4efe6;
-  --color-line: #cfc6b4;
+  /* Chocolate brown, from the logo: primary buttons and active states (6.4:1 under cream). */
+  --color-brand: #884c2b;
+  --color-brand-dark: #6e3a1f;
+  /* Deep purple, from the posters: dark grounds, footer, overlays. */
+  --color-brand-deep: #341830;
+  --color-night: #230f20;
+  --color-ink: #2a1426;
+  --color-subtle: #6b5462;
+  /* Mango yellow: the round "+" buttons, badges and highlights. Always under dark text. */
+  --color-gold: #fbad1c;
+  --color-gold-dark: #8a5200;
+  --color-gold-soft: #fde9bf;
+  --color-tint: #f6e6c4;
+  --color-tint-strong: #efd7a6;
+  --color-sale: #c62a1f;
+  --color-paper: #fff7e8;
+  --color-card: #fffbf3;
+  --color-line: #ead6b0;
   --color-leaf: #3f6b45;
-  /* Tomato: the one loud colour, saved for calls to action and things that must stand out.
-     #d23a24 is for fills under white text (4.8:1); #b92e1a for red text on cream (4.9:1). */
-  --color-tomato: #d23a24;
-  --color-tomato-dark: #b92e1a;
-  --color-tomato-soft: #f8d9d1;
-  --color-cream: #f4eee3;
+  /* Promo red: the one loud colour, saved for calls to action and things that must stand out.
+     #d22a1f is for fills under white text; #b0231a for red text on cream. */
+  --color-tomato: #d22a1f;
+  --color-tomato-dark: #b0231a;
+  --color-tomato-soft: #fbdad5;
+  --color-cream: #fff7e8;
 
   /* Kept so older class names still land on the new palette. */
-  --color-butter: #eee7da;
-  --color-butter-deep: #e4dccb;
-  --color-butter-soft: #f4efe6;
+  --color-butter: #fff7e8;
+  --color-butter-deep: #f6e6c4;
+  --color-butter-soft: #fffbf3;
 }
 
 @layer base {

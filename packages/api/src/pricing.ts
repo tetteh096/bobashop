@@ -2,7 +2,7 @@ import { findProduct, type Product } from "./data/catalog";
 
 // Shared by the storefront (for display) and the orders router (for charging),
 // so the totals a customer sees are the totals Paystack is asked to collect.
-export const DELIVERY_FEE = 15;
+// Delivery is priced by distance from the branch (see branch-menu.ts); orders over this are free.
 export const FREE_DELIVERY_THRESHOLD = 150;
 export const MAX_QUANTITY_PER_ITEM = 20;
 
@@ -11,9 +11,10 @@ export type FulfilmentMethod = "delivery" | "pickup";
 export { findProduct };
 export type { Product };
 
-export function deliveryFeeFor(method: FulfilmentMethod, subtotal: number) {
+/** `distanceFee` is the branch's quote for the customer's pin, or null before a pin is set. */
+export function deliveryFeeFor(method: FulfilmentMethod, subtotal: number, distanceFee: number | null) {
   if (method === "pickup") return 0;
-  return subtotal >= FREE_DELIVERY_THRESHOLD ? 0 : DELIVERY_FEE;
+  return subtotal >= FREE_DELIVERY_THRESHOLD ? 0 : (distanceFee ?? 0);
 }
 
 export function roundMoney(amount: number) {
@@ -42,6 +43,8 @@ export interface DiscountRule {
 export interface OrderTotals {
   subtotal: number;
   deliveryFee: number;
+  /** Delivery chosen but no location yet, so the fee isn't known. */
+  deliveryPending: boolean;
   discount: number;
   total: number;
   /** How much more the customer needs to spend for the code to apply. */
@@ -49,8 +52,14 @@ export interface OrderTotals {
 }
 
 /** One calculation for the cart, checkout and the server that charges the order. */
-export function computeTotals(subtotal: number, method: FulfilmentMethod, rule?: DiscountRule | null): OrderTotals {
-  const deliveryFee = deliveryFeeFor(method, subtotal);
+export function computeTotals(
+  subtotal: number,
+  method: FulfilmentMethod,
+  rule?: DiscountRule | null,
+  distanceFee: number | null = null
+): OrderTotals {
+  const deliveryFee = deliveryFeeFor(method, subtotal, distanceFee);
+  const deliveryPending = method === "delivery" && distanceFee === null && subtotal < FREE_DELIVERY_THRESHOLD;
   let discount = 0;
   let shortfall = 0;
 
@@ -70,6 +79,7 @@ export function computeTotals(subtotal: number, method: FulfilmentMethod, rule?:
   return {
     subtotal: roundMoney(subtotal),
     deliveryFee,
+    deliveryPending,
     discount,
     total: roundMoney(subtotal + deliveryFee - discount),
     discountShortfall: roundMoney(shortfall),

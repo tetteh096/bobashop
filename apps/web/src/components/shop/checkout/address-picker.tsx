@@ -122,11 +122,11 @@ export function AddressPicker({
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search an area, street or landmark"
             aria-label="Search for your location"
-            className="w-full bg-tint pl-11 pr-10 py-3.5 text-base focus:outline-none focus:ring-2 focus:ring-brand"
+            className="w-full rounded-full bg-tint pl-11 pr-10 py-3.5 text-base focus:outline-none focus:ring-2 focus:ring-brand/40"
           />
           {searching && <Loader2 className="w-4 h-4 animate-spin text-gray-400 absolute right-4 top-1/2 -translate-y-1/2" />}
           {results.length > 0 && (
-            <ul className="absolute z-[1000] left-0 right-0 top-full mt-2 bg-card shadow-xl border border-gray-100 overflow-hidden">
+            <ul className="absolute z-[1000] left-0 right-0 top-full mt-2 rounded-2xl bg-card shadow-xl border border-line overflow-hidden">
               {results.map((r) => (
                 <li key={`${r.lat},${r.lon}`}>
                   <button
@@ -151,7 +151,7 @@ export function AddressPicker({
           type="button"
           onClick={useMyLocation}
           disabled={locating}
-          className="inline-flex items-center justify-center gap-2 bg-ink text-white font-semibold px-5 py-3.5 hover:bg-brand transition-colors disabled:opacity-60 cursor-pointer"
+          className="inline-flex items-center justify-center gap-2 rounded-full bg-brand-deep text-cream font-semibold px-5 py-3.5 hover:bg-night transition-colors disabled:opacity-60 cursor-pointer"
         >
           {locating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Crosshair className="w-4 h-4" />}
           {locating ? "Finding you…" : "Use my location"}
@@ -161,7 +161,7 @@ export function AddressPicker({
       {geoError && <p className="text-sm text-sale">{geoError}</p>}
 
       {/* `isolate` keeps Leaflet's high z-index panes from covering the sticky header. */}
-      <div className="relative isolate h-72 sm:h-80 overflow-hidden border border-line">
+      <div className="relative isolate h-72 sm:h-80 overflow-hidden rounded-[22px] border border-line">
         <LocationMap position={position} onChange={moveTo} />
       </div>
 

@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Inter_Tight, Jost } from "next/font/google";
+import { Fredoka, Inter_Tight } from "next/font/google";
 import { SHOP } from "@bobashop/api/data/shop";
 
 import "../index.css";
@@ -8,10 +8,11 @@ import Footer from "@/components/footer";
 import Providers from "@/components/providers";
 import { accountsEnabled } from "@/features";
 
-const jost = Jost({
-  variable: "--font-jost",
+// Rounded and chunky, close to the Bobalicious logo lettering.
+const fredoka = Fredoka({
+  variable: "--font-fredoka",
   subsets: ["latin"],
-  weight: ["300", "400", "500"],
+  weight: ["300", "400", "500", "600", "700"],
 });
 
 const interTight = Inter_Tight({
@@ -21,7 +22,7 @@ const interTight = Inter_Tight({
 });
 
 export const metadata: Metadata = {
-  title: `${SHOP.legalName} | Real tea boba`,
+  title: `${SHOP.legalName} | Boba, pizza & good vibes`,
   description: SHOP.description,
 };
 
@@ -32,7 +33,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${jost.variable} ${interTight.variable} antialiased bg-paper text-ink min-h-screen flex flex-col`}>
+      <body className={`${fredoka.variable} ${interTight.variable} antialiased bg-paper text-ink min-h-screen flex flex-col`}>
         <Providers accountsEnabled={accountsEnabled}>
           <div className="flex-1 flex flex-col">
             <Header />

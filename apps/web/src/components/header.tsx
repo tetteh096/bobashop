@@ -10,12 +10,13 @@ import { useFeatures } from "./features";
 import { Logo } from "./logo";
 import { MobileMenu } from "./mobile-menu";
 import { useCart } from "./shop/cart-context";
+import { BranchButton } from "./branch";
 
 const NAV_ITEMS = [
-  { label: "menu", href: "/menu" },
-  { label: "our teas", href: "/#origins" },
-  { label: "how it's made", href: "/#process" },
-  { label: "visit", href: "/contact" },
+  { label: "Menu", href: "/menu" },
+  { label: "Food", href: "/menu?tab=food" },
+  { label: "Branches", href: "/#branches" },
+  { label: "Contact", href: "/contact" },
 ];
 
 /** Basket icon from the reference: a trapezoid bag with a handle. */
@@ -31,7 +32,7 @@ export function BagIcon({ className = "w-6 h-6" }: { className?: string }) {
 export default function Header() {
   const pathname = usePathname();
   const router = useRouter();
-  const { setIsCartOpen, totalItems, wishlist, searchQuery, setSearchQuery, setSelectedCategory, setSelectedOrigin } = useCart();
+  const { setIsCartOpen, totalItems, wishlist, searchQuery, setSearchQuery, setSelectedCategory } = useCart();
 
   const { accountsEnabled } = useFeatures();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -62,7 +63,6 @@ export default function Header() {
   const submitSearch = (e: React.FormEvent) => {
     e.preventDefault();
     setSelectedCategory("all");
-    setSelectedOrigin("all");
     setSearchOpen(false);
     router.push("/menu");
   };
@@ -87,14 +87,15 @@ export default function Header() {
         <Link href="/" aria-label={`${SHOP.name} home`} className="shrink-0">
           <Logo />
         </Link>
+        <BranchButton className="hidden sm:inline-flex ml-2 lg:ml-0" />
 
-        <nav aria-label="Main" className="hidden lg:flex items-center gap-9 mx-auto">
+        <nav aria-label="Main" className="hidden lg:flex items-center gap-8 mx-auto">
           {NAV_ITEMS.map((item) => (
             <Link
               key={item.label}
               href={item.href as "/"}
               aria-current={isActive(item.href) ? "page" : undefined}
-              className={`text-[16px] transition-colors hover:text-brand ${
+              className={`text-[16px] font-medium transition-colors hover:text-brand ${
                 isActive(item.href) ? "underline underline-offset-[6px] decoration-1" : ""
               }`}
             >
@@ -112,7 +113,7 @@ export default function Header() {
           >
             <Search className="w-5 h-5" strokeWidth={1.4} />
           </button>
-          <Link href={"/wishlist" as "/"} aria-label={`Saved drinks, ${wishlist.length}`} className={`hidden sm:flex ${iconButton}`}>
+          <Link href={"/wishlist" as "/"} aria-label={`Saved, ${wishlist.length}`} className={`hidden sm:flex ${iconButton}`}>
             <Heart className="w-5 h-5" strokeWidth={1.4} />
             {wishlist.length > 0 && (
               <span className="absolute top-1.5 right-1 min-w-[17px] h-[17px] px-1 rounded-full bg-tomato text-white text-[11px] font-semibold flex items-center justify-center">
@@ -147,12 +148,12 @@ export default function Header() {
                 type="search"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search drinks, teas, toppings…"
+                placeholder="Search milk teas, matcha, fruit teas…"
                 aria-label="Search the menu"
                 className="flex-1 min-w-0 bg-transparent px-3 text-lg placeholder:text-subtle/80 focus:outline-none"
               />
             </div>
-            <button type="submit" className="h-12 px-6 bg-tomato text-white hover:bg-tomato-dark cursor-pointer">
+            <button type="submit" className="h-12 px-6 rounded-full bg-tomato text-white hover:bg-tomato-dark cursor-pointer">
               Search
             </button>
             <button type="button" onClick={() => setSearchOpen(false)} aria-label="Close search" className={iconButton}>

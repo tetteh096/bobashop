@@ -32,13 +32,13 @@ export default function CartPage() {
               <ShoppingBag className="w-7 h-7 text-brand" />
             </div>
             <p className="mt-6 font-display text-2xl font-normal">Nothing in here yet</p>
-            <p className="mt-2 text-subtle">Pick something from the menu, or check your saved drinks.</p>
+            <p className="mt-2 text-subtle">Pick something from the menu, or check what you saved.</p>
             <div className="mt-8 flex flex-wrap justify-center gap-3">
               <Link href="/menu" className="inline-flex items-center gap-2 bg-brand text-white font-semibold px-6 py-3.5">
                 See the menu <ArrowRight className="w-4 h-4" />
               </Link>
               <Link href={"/wishlist" as "/"} className="inline-flex items-center gap-2 border border-ink/20 bg-card font-semibold px-6 py-3.5">
-                <Heart className="w-4 h-4" /> Saved drinks
+                <Heart className="w-4 h-4" /> Saved
               </Link>
             </div>
           </div>
@@ -54,7 +54,7 @@ export default function CartPage() {
                         <div className="min-w-0">
                           <p className="text-xs font-medium text-subtle">{categoryName(product.category)}</p>
                           <p className="mt-0.5 font-display text-base sm:text-lg font-normal leading-snug">{product.name}</p>
-                          <p className="mt-0.5 text-sm text-subtle">{describeOptions(options)}</p>
+                          <p className="mt-0.5 text-sm text-subtle">{describeOptions(options, product)}</p>
                         </div>
                         <p className="font-display text-lg font-normal shrink-0">{formatGHS(unitPrice * quantity)}</p>
                       </div>

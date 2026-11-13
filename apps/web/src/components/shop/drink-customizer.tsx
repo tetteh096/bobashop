@@ -170,7 +170,7 @@ function Pill({ active, onClick, children }: { active: boolean; onClick: () => v
       aria-pressed={active}
       onClick={onClick}
       className={`min-h-11 px-4 border text-[15px] transition-colors cursor-pointer ${
-        active ? "bg-ink border-ink text-paper" : "border-[#B5AC99] hover:border-ink"
+        active ? "bg-ink border-ink text-paper" : "border-[#D9BF8E] hover:border-ink"
       }`}
     >
       {children}

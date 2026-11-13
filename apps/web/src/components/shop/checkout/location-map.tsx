@@ -13,7 +13,7 @@ export type LatLng = { lat: number; lng: number };
 const pinIcon = L.divIcon({
   className: "",
   html: `<div style="width:36px;height:36px;transform:translate(-50%,-100%);position:relative;left:18px;top:36px">
-    <div style="width:36px;height:36px;border-radius:50% 50% 50% 0;background:#6B1D2A;transform:rotate(-45deg);box-shadow:0 6px 14px rgba(58,14,23,.35);border:3px solid #fff"></div>
+    <div style="width:36px;height:36px;border-radius:50% 50% 50% 0;background:#884C2B;transform:rotate(-45deg);box-shadow:0 6px 14px rgba(52,24,48,.35);border:3px solid #fff"></div>
     <div style="position:absolute;top:11px;left:11px;width:14px;height:14px;border-radius:50%;background:#fff"></div>
   </div>`,
   iconSize: [36, 36],

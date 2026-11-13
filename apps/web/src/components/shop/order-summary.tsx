@@ -7,27 +7,34 @@ import { useCart } from "./cart-context";
 import { ProductArt } from "./product-art";
 import { DiscountCodeField } from "./discount-code-field";
 import { formatGHS } from "./money";
+import { lowestDeliveryFee } from "@bobashop/api/branch-menu";
+import { useBranch } from "../branch";
 
 /** Same calculation the server uses to charge, so the total shown is the total paid. */
-export function useOrderTotals(method: FulfilmentMethod) {
+export function useOrderTotals(method: FulfilmentMethod, distanceFee: number | null = null) {
   const { subtotal, discount } = useCart();
-  return computeTotals(subtotal, method, discount);
+  return computeTotals(subtotal, method, discount, distanceFee);
 }
 
 export function OrderSummary({
   method,
+  distanceFee = null,
   showItems = false,
   before,
   children,
 }: {
   method: FulfilmentMethod;
+  /** The delivery quote for the customer's pin; null until they set one. */
+  distanceFee?: number | null;
   showItems?: boolean;
   /** Shown under the heading, above the totals (e.g. the delivery/pickup switch). */
   before?: React.ReactNode;
   children?: React.ReactNode;
 }) {
   const { items, totalItems, freeShippingRemaining, discount: rule } = useCart();
-  const { subtotal, deliveryFee, discount, total, discountShortfall } = useOrderTotals(method);
+  const { subtotal, deliveryFee, deliveryPending, discount, total, discountShortfall } = useOrderTotals(method, distanceFee);
+  const { branch } = useBranch();
+  const fromFee = lowestDeliveryFee(branch);
 
   // Why an accepted code isn't taking anything off right now.
   const codeNote =
@@ -58,7 +65,7 @@ export function OrderSummary({
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium line-clamp-2">{product.name}</p>
-                <p className="text-xs text-subtle line-clamp-2">{describeOptions(options)}</p>
+                <p className="text-xs text-subtle line-clamp-2">{describeOptions(options, product)}</p>
               </div>
               <span className="text-sm font-semibold shrink-0">{formatGHS(unitPrice * quantity)}</span>
             </li>
@@ -77,7 +84,15 @@ export function OrderSummary({
         </div>
         <div className="flex justify-between">
           <dt className="text-subtle">{method === "pickup" ? "Shop pickup" : "Delivery"}</dt>
-          <dd className={`font-semibold ${deliveryFee === 0 ? "text-[#2C6853]" : ""}`}>{deliveryFee === 0 ? "Free" : formatGHS(deliveryFee)}</dd>
+          <dd className={`font-semibold text-right ${deliveryFee === 0 && !deliveryPending ? "text-[#2C6853]" : ""}`}>
+            {deliveryPending ? (
+              <span className="text-sm font-medium text-subtle">{fromFee !== null ? `From ${formatGHS(fromFee)}, by distance` : "Set at checkout"}</span>
+            ) : deliveryFee === 0 ? (
+              "Free"
+            ) : (
+              formatGHS(deliveryFee)
+            )}
+          </dd>
         </div>
         {discount > 0 && rule && (
           <div className="flex justify-between">

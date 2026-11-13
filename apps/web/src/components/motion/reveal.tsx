@@ -8,10 +8,14 @@ import { m, type Variants } from "motion/react";
 
 const EASE = [0.22, 1, 0.36, 1] as const;
 
+// Small and quick, so scrolling on a phone never waits for content to appear.
 const fadeUp: Variants = {
-  hidden: { opacity: 0, y: 24 },
-  show: { opacity: 1, y: 0, transition: { duration: 0.6, ease: EASE } },
+  hidden: { opacity: 0, y: 12 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.35, ease: EASE } },
 };
+
+// Start a little before the element reaches the screen, not after it's already on it.
+const VIEWPORT = { once: true, margin: "0px 0px 120px 0px" } as const;
 
 /** Fades its content up the first time it scrolls into view. */
 export function Reveal({
@@ -28,7 +32,7 @@ export function Reveal({
       className={className}
       initial="hidden"
       whileInView="show"
-      viewport={{ once: true, margin: "0px 0px -80px 0px" }}
+      viewport={VIEWPORT}
       variants={fadeUp}
       transition={{ delay }}
     >
@@ -42,7 +46,7 @@ export function RevealGroup({
   children,
   className,
   as = "div",
-  stagger = 0.08,
+  stagger = 0.04,
 }: {
   children: React.ReactNode;
   className?: string;
@@ -55,7 +59,7 @@ export function RevealGroup({
       className={className}
       initial="hidden"
       whileInView="show"
-      viewport={{ once: true, margin: "0px 0px -60px 0px" }}
+      viewport={VIEWPORT}
       variants={{ hidden: {}, show: { transition: { staggerChildren: stagger } } }}
     >
       {children}
@@ -91,7 +95,7 @@ export function RevealSection({
       {...rest}
       initial="hidden"
       whileInView="show"
-      viewport={{ once: true, margin: "0px 0px -80px 0px" }}
+      viewport={VIEWPORT}
       variants={fadeUp}
     >
       {children}

@@ -14,7 +14,9 @@ import {
   type DiscountRule,
 } from "../pricing";
 import { lookupDiscount } from "../discount-codes";
-import { PICKUP_POINTS, SHOP } from "../data/shop";
+import { SHOP, findBranch } from "../data/shop";
+import { isAvailableAt, quoteDelivery } from "../branch-menu";
+import { rememberCustomer } from "../customers";
 import {
   describeOptions,
   normaliseOptions,
@@ -30,6 +32,8 @@ export type OrderDocument = {
   status: OrderStatus;
   userId: string | null;
   customer: { fullName: string; email: string; phone: string };
+  /** The branch that makes the order: the pickup branch, or the one delivering it. */
+  branch: { id: string; name: string; phone: string };
   fulfilment:
     | {
         method: "delivery";
@@ -37,6 +41,8 @@ export type OrderDocument = {
         landmark?: string;
         ghanaPostGps?: string;
         location: { lat: number; lng: number };
+        /** Road kilometres from the branch, as priced. */
+        distanceKm?: number;
         notes?: string;
       }
     | {
@@ -72,7 +78,7 @@ const drinkOptionsSchema = z.object({
   size: z.enum(["regular", "large"]),
   sweetness: z.enum(["0", "25", "50", "75", "100"]),
   ice: z.enum(["none", "less", "regular", "hot"]),
-  toppings: z.array(z.enum(["pearls", "foam", "pudding", "lychee-jelly", "grass-jelly", "popping-mango"])).max(10),
+  toppings: z.array(z.enum(["pearls", "foam", "pudding", "lychee-jelly", "popping-strawberry", "popping-mango"])).max(10),
 });
 
 const customerSchema = z.object({
@@ -98,7 +104,8 @@ const fulfilmentSchema = z.discriminatedUnion("method", [
   }),
   z.object({
     method: z.literal("pickup"),
-    pickupPointId: z.string(),
+    /** Ignored: pickup is always at the order's branch. Kept so older clients still work. */
+    pickupPointId: z.string().optional(),
     collectorName: z.string().trim().max(120).optional(),
     notes: z.string().trim().max(500).optional(),
   }),
@@ -191,6 +198,8 @@ export const ordersRouter = router({
           )
           .min(1, "Your bag is empty"),
         customer: customerSchema,
+        /** The branch chosen in the branch picker: it makes, and delivers or hands over, the order. */
+        branchId: z.string(),
         fulfilment: fulfilmentSchema,
         discountCode: z.string().trim().max(40).optional(),
       })
@@ -198,13 +207,27 @@ export const ordersRouter = router({
     .mutation(async ({ ctx, input }) => {
       const secretKey = requireSecretKey(ctx.paystackSecretKey);
 
+      const branch = findBranch(input.branchId);
+      if (!branch) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "Choose a branch to order from" });
+      }
+      if (!branch.orderingOpen) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: branch.closedMessage ?? `${branch.name} isn't taking online orders right now. Please try another branch.`,
+        });
+      }
+
       const items = input.items.map(({ productId, options: raw, quantity }) => {
         const product = findProduct(productId);
         if (!product || !product.inStock) {
           throw new TRPCError({
             code: "BAD_REQUEST",
-            message: product ? `${product.name} is sold out today` : "A drink in your bag is no longer on the menu",
+            message: product ? `${product.name} is sold out today` : "An item in your bag is no longer on the menu",
           });
+        }
+        if (!isAvailableAt(product, branch)) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: `${product.name} isn't served at ${branch.name}` });
         }
         const options = normaliseOptions(raw);
         const problem = optionsProblem(product, options);
@@ -216,7 +239,7 @@ export const ordersRouter = router({
           productId,
           name: product.name,
           options,
-          optionsLabel: describeOptions(options),
+          optionsLabel: describeOptions(options, product),
           unitPrice: price,
           quantity,
           lineTotal: roundMoney(price * quantity),
@@ -232,7 +255,17 @@ export const ordersRouter = router({
         if (!found.ok) throw new TRPCError({ code: "BAD_REQUEST", message: found.reason });
         rule = found.rule;
       }
-      const { deliveryFee, discount, total, discountShortfall } = computeTotals(subtotal, input.fulfilment.method, rule);
+      // Delivery is priced from this branch to the customer's pin, the same way the storefront shows it.
+      let distanceFee: number | null = null;
+      let distanceKm: number | undefined;
+      if (input.fulfilment.method === "delivery") {
+        const quote = quoteDelivery(branch, input.fulfilment.location, SHOP.pickupMinutes);
+        if (!quote.ok) throw new TRPCError({ code: "BAD_REQUEST", message: quote.message });
+        distanceFee = quote.fee;
+        distanceKm = quote.km;
+      }
+
+      const { deliveryFee, discount, total, discountShortfall } = computeTotals(subtotal, input.fulfilment.method, rule, distanceFee);
       if (rule && discount === 0) {
         throw new TRPCError({
           code: "BAD_REQUEST",
@@ -248,21 +281,17 @@ export const ordersRouter = router({
 
       let fulfilment: OrderDocument["fulfilment"];
       if (input.fulfilment.method === "pickup") {
-        const { pickupPointId, collectorName, notes } = input.fulfilment;
-        const point = PICKUP_POINTS.find((p) => p.id === pickupPointId);
-        if (!point) {
-          throw new TRPCError({ code: "BAD_REQUEST", message: "Choose where you'll pick up" });
-        }
+        const { collectorName, notes } = input.fulfilment;
         fulfilment = {
           method: "pickup",
-          pickupPointId: point.id,
-          pickupPointName: point.name,
-          pickupPointAddress: point.address,
+          pickupPointId: branch.id,
+          pickupPointName: `Bobalicious ${branch.name}`,
+          pickupPointAddress: branch.address,
           collectorName: collectorName || undefined,
           notes,
         };
       } else {
-        fulfilment = input.fulfilment;
+        fulfilment = { ...input.fulfilment, distanceKm };
       }
 
       const now = new Date();
@@ -271,6 +300,7 @@ export const ordersRouter = router({
         status: "pending_payment",
         userId: ctx.session?.user.id ?? null,
         customer: input.customer,
+        branch: { id: branch.id, name: branch.name, phone: branch.phone },
         fulfilment,
         items,
         subtotal,
@@ -292,6 +322,7 @@ export const ordersRouter = router({
           customer_name: input.customer.fullName,
           phone: input.customer.phone,
           fulfilment: fulfilment.method,
+          branch: branch.name,
           discount_code: rule?.code ?? "",
         },
       });
@@ -305,6 +336,16 @@ export const ordersRouter = router({
     .mutation(async ({ ctx, input }) => {
       const secretKey = requireSecretKey(ctx.paystackSecretKey);
       const order = await confirmOrderPayment(ctx.db, secretKey, input.reference);
+      // Next time, their phone number or email brings these details back at checkout.
+      if (order.status === "paid") {
+        const f = order.fulfilment;
+        rememberCustomer({
+          ...order.customer,
+          method: f.method,
+          branchId: order.branch?.id,
+          ...(f.method === "delivery" && { address: f.address, landmark: f.landmark, ghanaPostGps: f.ghanaPostGps, location: f.location }),
+        });
+      }
       return toPublicOrder(order);
     }),
 });

@@ -86,7 +86,7 @@ export function CartDrawer() {
                       <div className="min-w-0">
                         <p className="font-medium text-sm line-clamp-2">{product.name}</p>
                         <p className="text-xs text-subtle mt-0.5">
-                          {describeOptions(options)}
+                          {describeOptions(options, product)}
                         </p>
                       </div>
                       <button

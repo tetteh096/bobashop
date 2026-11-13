@@ -12,6 +12,7 @@ import { getQueryClient, makeTRPCClient, TRPCProvider } from "@/utils/trpc";
 import { ThemeProvider } from "./theme-provider";
 import { CartProvider } from "./shop/cart-context";
 import { FeaturesProvider } from "./features";
+import { BranchProvider } from "./branch";
 
 // The drawer only renders once opened, so its code can load after the page.
 const CartDrawer = dynamic(() => import("./shop/cart-drawer").then((mod) => mod.CartDrawer), {
@@ -30,10 +31,12 @@ export default function Providers({ children, accountsEnabled }: { children: Rea
           {/* Visitors who ask their device for less motion get instant transitions. */}
           <MotionConfig reducedMotion="user">
             <LazyMotion features={domAnimation} strict>
-              <CartProvider>
-                {children}
-                <CartDrawer />
-              </CartProvider>
+              <BranchProvider>
+                <CartProvider>
+                  {children}
+                  <CartDrawer />
+                </CartProvider>
+              </BranchProvider>
             </LazyMotion>
           </MotionConfig>
         </TRPCProvider>

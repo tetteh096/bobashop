@@ -1,216 +1,243 @@
 "use client";
 
 import React from "react";
+import Image from "next/image";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { m } from "motion/react";
-import { MessageCircle } from "lucide-react";
-import { ORIGINS, PRODUCTS, type OriginId } from "@bobashop/api/data/catalog";
-import { FREE_DELIVERY_THRESHOLD } from "@bobashop/api/pricing";
-import { SHOP } from "@bobashop/api/data/shop";
+import { Camera, MessageCircle, Phone } from "lucide-react";
+import { DRINK_CATEGORIES as CATEGORIES, PRODUCTS } from "@bobashop/api/data/catalog";
+import { BRANCHES, SHOP } from "@bobashop/api/data/shop";
 import { ProductCard } from "@/components/shop/product-card";
-import { Cup } from "@/components/shop/product-art";
-import { useCart } from "@/components/shop/cart-context";
-import { formatGHS } from "@/components/shop/money";
-import { ArrowButton, Eyebrow, LongArrow } from "@/components/arrow-button";
+import { ArrowButton, LongArrow } from "@/components/arrow-button";
 import { Reveal, RevealGroup, RevealItem } from "@/components/motion/reveal";
-import { TeaLeaves } from "@/components/tea-leaves";
+import { useBranch } from "@/components/branch";
+import { HeroSlider } from "@/components/hero-slider";
+import { HowItWorks } from "@/components/home/how-it-works";
+import { OurStory } from "@/components/home/our-story";
+import { Testimonials } from "@/components/home/testimonials";
 
-const HERO = PRODUCTS.find((p) => p.badge === "Best seller") ?? PRODUCTS[0];
-const SEASONAL = PRODUCTS.filter((p) => p.category === "seasonal" || p.badge === "Best seller").slice(0, 4);
+const FAVOURITES = [
+  ...PRODUCTS.filter((p) => p.badge === "Best seller" || p.badge === "New"),
+  ...PRODUCTS.filter((p) => ["kit-kat", "vanilla-biscoff-latte", "oreo-cookie-crush", "mangolicious"].includes(p.id)),
+].slice(0, 8);
 
-const STEPS = [
-  { title: "Brew", text: "Loose leaf, steeped at the right temperature for each tea, in small batches through the day." },
-  { title: "Cook", text: "Tapioca pearls cooked in-house and rested in brown sugar syrup, so they're soft and warm." },
-  { title: "Shake", text: "Your sweetness and ice, shaken by hand so every sip of the cup tastes the same." },
-  { title: "Pour", text: `Over pearls and sealed, ready for pickup in about ${SHOP.pickupMinutes} minutes or out for delivery.` },
-];
-
-const EASE = [0.22, 1, 0.36, 1] as const;
+const STRIP = ["Milk tea", "Matcha", "Fruit tea", "Pizza", "Call or WhatsApp", "Delivery available", "5 branches in Accra"];
 
 export default function HomePage() {
-  const router = useRouter();
-  const { setSelectedCategory, setSelectedOrigin, setSearchQuery } = useCart();
-
-  const browseOrigin = (origin: OriginId) => {
-    setSearchQuery("");
-    setSelectedCategory("all");
-    setSelectedOrigin(origin);
-    router.push("/menu");
-  };
+  const { branch, contact, setBranchId } = useBranch();
+  const orderLink = (what: string) =>
+    `https://wa.me/${contact.whatsapp}?text=${encodeURIComponent(`Hi Bobalicious, I'd like to order some ${what}.`)}`;
 
   return (
     <div>
-      {/* Hero */}
-      <section className="flex flex-wrap bg-brand-deep text-cream">
-        <div className="flex-[1_1_520px] min-w-0 bg-night relative overflow-hidden flex items-center justify-center px-6 py-16 sm:py-20 min-h-[420px] lg:min-h-[720px]">
-          <span aria-hidden className="absolute w-[min(640px,130%)] aspect-square rounded-full border border-cream/10" />
-          <span aria-hidden className="absolute w-[min(780px,160%)] aspect-square rounded-full border border-cream/[0.06]" />
-          <m.div
-            initial={{ opacity: 0, rotate: -20, scale: 0.92 }}
-            animate={{ opacity: 1, rotate: 0, scale: 1 }}
-            transition={{ duration: 1.1, ease: EASE }}
-            className="relative w-[min(78vw,460px)]"
-          >
-            <span className="absolute -top-2 -right-2 sm:top-2 sm:right-0 z-10 w-24 h-24 sm:w-28 sm:h-28 rounded-full bg-tomato text-white flex flex-col items-center justify-center text-center rotate-12 shadow-[0_10px_30px_-10px_rgba(0,0,0,0.6)]">
-              <span className="font-display text-[11px] uppercase tracking-[0.14em]">Most</span>
-              <span className="font-display text-lg sm:text-xl uppercase leading-none">loved</span>
-            </span>
-            <Cup color={HERO.color} label={`${HERO.name}, seen from above`} className="w-full h-auto" />
-          </m.div>
-          <Link
-            href={`/menu/${HERO.id}` as "/"}
-            className="absolute left-5 bottom-5 sm:left-8 sm:bottom-8 text-[13px] tracking-[0.14em] uppercase text-cream/70 hover:text-cream"
-          >
-            {HERO.name} · {HERO.tea}
-          </Link>
-        </div>
+      <HeroSlider />
 
-        <div className="flex-[1_1_520px] min-w-0 flex flex-col justify-center gap-12 px-5 sm:px-12 lg:px-20 py-14 sm:py-20">
-          <div className="flex flex-wrap gap-2.5">
-            <Eyebrow tone="light">real tea</Eyebrow>
-            <Eyebrow tone="light">hand-cooked pearls</Eyebrow>
-            <Eyebrow tone="light">pickup &amp; delivery</Eyebrow>
-          </div>
-          <m.div
-            initial={{ opacity: 0, y: 24 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, ease: EASE, delay: 0.1 }}
-            className="flex flex-col gap-7"
-          >
-            <h1 className="font-display font-light uppercase tracking-[0.02em] leading-[0.95] text-[56px] sm:text-[80px] lg:text-[104px]">
-              Boba
-              <br />
-              licious<span className="text-tomato">.</span>
-            </h1>
-            <p className="text-xl sm:text-2xl leading-snug max-w-[560px] text-cream/85">
-              Boba built on real tea. Every base starts with a named leaf (Taiwanese oolong, Assam black, Uji matcha),
-              brewed fresh and poured over pearls we cook by hand.
-            </p>
-            <div className="flex flex-wrap gap-3">
-              <ArrowButton href="/menu">Explore the menu</ArrowButton>
-              <ArrowButton href={`/menu/${HERO.id}`} tone="ghost-light" arrow={false}>
-                Order the {HERO.name}
-              </ArrowButton>
+      {/* Strip */}
+      <div className="bg-brand-deep text-cream overflow-hidden py-4" aria-hidden>
+        <div className="flex w-max animate-marquee">
+          {[0, 1].map((k) => (
+            <div key={k} className="flex shrink-0">
+              {STRIP.map((t) => (
+                <span key={t} className="font-display text-xl sm:text-2xl font-semibold px-6 flex items-center gap-6 whitespace-nowrap">
+                  {t} <span className="w-2 h-2 rounded-full bg-gold" />
+                </span>
+              ))}
             </div>
-          </m.div>
+          ))}
         </div>
-      </section>
+      </div>
 
-      {/* Collection */}
-      <section className="relative isolate max-w-[1280px] mx-auto px-4 sm:px-8 py-24 sm:py-28 flex flex-col items-center gap-12 sm:gap-14">
-        <div aria-hidden className="absolute inset-0 overflow-hidden -z-10">
-          <TeaLeaves className="absolute -left-28 top-4 w-[320px] sm:w-[440px]" />
-          <TeaLeaves flip className="hidden md:block absolute -right-20 bottom-10 w-[400px] -rotate-12" />
-        </div>
-        <Reveal className="text-center flex flex-col gap-4 max-w-[640px]">
-          <h2 className="font-display font-light uppercase tracking-[0.02em] leading-none text-[38px] sm:text-6xl">This season</h2>
-          <p className="text-lg sm:text-[19px] text-subtle">Roasted, nutty and slow-sweet, plus the one everybody orders.</p>
+      {/* Favourites */}
+      <section className="max-w-[1280px] mx-auto px-4 sm:px-8 py-20 sm:py-24 flex flex-col gap-10">
+        <Reveal className="flex flex-wrap items-end justify-between gap-6">
+          <div className="flex flex-col gap-3">
+            <p className="font-medium text-brand">The ones everyone orders</p>
+            <h2 className="font-display font-bold text-[40px] sm:text-6xl leading-none text-brand-deep">Crowd favourites</h2>
+          </div>
+          <div role="list" aria-label="Menu sections" className="flex flex-wrap gap-2">
+            {CATEGORIES.map((c) => (
+              <span role="listitem" key={c.id} className="rounded-full bg-tint px-4 py-2 text-sm">
+                {c.name}
+              </span>
+            ))}
+          </div>
         </Reveal>
         <div className="w-full grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-5">
-          {SEASONAL.map((p) => (
+          {FAVOURITES.map((p) => (
             <ProductCard key={p.id} product={p} />
           ))}
         </div>
-        <Link href="/menu" className="group inline-flex items-center gap-3 font-display text-xl hover:text-brand">
+        <Link href="/menu" className="self-center group inline-flex items-center gap-3 font-display text-xl font-semibold hover:text-brand">
           See the full menu <LongArrow className="transition-transform group-hover:translate-x-1" />
         </Link>
       </section>
 
-      {/* Origins */}
-      <section id="origins" className="bg-brand-deep text-cream scroll-mt-20">
-        <div className="max-w-[1280px] mx-auto px-5 sm:px-8 py-24 sm:py-28 flex flex-col gap-14">
-          <Reveal className="flex flex-wrap justify-between items-end gap-8">
-            <h2 className="max-w-[720px] font-display font-light text-[34px] sm:text-[52px] leading-[1.08]">
-              Chosen by where the leaf grows, not by the syrup we add.
-            </h2>
-            <p className="max-w-[380px] text-[17px] leading-relaxed text-cream/75">
-              Region, cultivar and harvest shape the taste of every cup. We tell you all three.
+      <HowItWorks />
+
+      {/* Boba, pizza, food */}
+      <section id="food" className="max-w-[1280px] mx-auto px-4 sm:px-8 py-20 sm:py-24 flex flex-col gap-10 scroll-mt-24">
+        <Reveal className="flex flex-col gap-3">
+          <p className="font-medium text-brand">More than boba</p>
+          <h2 className="font-display font-bold text-[40px] sm:text-6xl leading-none text-brand-deep">Sip it. Bite it. Share it.</h2>
+        </Reveal>
+        <RevealGroup className="grid md:grid-cols-3 gap-4 sm:gap-5">
+          {[
+            {
+              tag: "Boba",
+              tagStyle: "bg-gold text-ink",
+              image: "/images/boba-caramel.jpg",
+              title: "Biscoff, Oreo, Kit Kat. In your milk tea.",
+              text: "Plus matcha five ways and fruit teas full of popping pearls.",
+              cta: <ArrowButton href="/menu" tone="mango">Build your cup</ArrowButton>,
+            },
+            {
+              tag: "Pizza",
+              tagStyle: "bg-tomato text-white",
+              image: "/images/pizza-cheese-pull.jpg",
+              title: "That cheese pull, though.",
+              text: "Hot, loaded pizza, made to share (or not).",
+              cta: (
+                <ArrowButton href={orderLink("pizza")} external tone="brand">
+                  Order pizza
+                </ArrowButton>
+              ),
+            },
+            {
+              tag: "Food",
+              tagStyle: "bg-cream text-ink",
+              image: "/images/food-wings.jpg",
+              title: "Wings, shawarma and jollof.",
+              text: "Four kinds of wings, loaded shawarma and assorted rice. Add it to your boba order.",
+              cta: (
+                <ArrowButton href="/menu?tab=food" tone="butter">
+                  See the food menu
+                </ArrowButton>
+              ),
+            },
+          ].map((card) => (
+            <RevealItem key={card.tag} className="group relative min-h-[440px] sm:min-h-[520px] rounded-[28px] overflow-hidden text-cream flex">
+              <Image src={card.image} alt="" fill sizes="(min-width: 768px) 33vw, 100vw" className="object-cover transition-transform duration-500 group-hover:scale-[1.02]" />
+              <div className="absolute inset-0 bg-gradient-to-t from-night/95 via-night/40 to-transparent" />
+              <div className="relative mt-auto p-6 sm:p-8 flex flex-col gap-3 items-start">
+                <span className={`rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-[0.1em] ${card.tagStyle}`}>{card.tag}</span>
+                <h3 className="font-display font-bold text-3xl sm:text-[34px] leading-[1.05]">{card.title}</h3>
+                <p className="text-cream/80">{card.text}</p>
+                <div className="pt-2">{card.cta}</div>
+              </div>
+            </RevealItem>
+          ))}
+        </RevealGroup>
+        <p className="text-sm text-subtle">Pizza isn&apos;t on the online menu yet, so order it on WhatsApp from {branch ? branch.name : "your branch"}.</p>
+      </section>
+
+      {/* Branches */}
+      <section id="branches" className="bg-brand-deep text-cream scroll-mt-20">
+        <div className="max-w-[1280px] mx-auto px-4 sm:px-8 py-20 sm:py-24 flex flex-col gap-10">
+          <Reveal className="flex flex-wrap items-end justify-between gap-6">
+            <div className="flex flex-col gap-3">
+              <p className="font-medium text-gold">Call or WhatsApp</p>
+              <h2 className="font-display font-bold text-[40px] sm:text-6xl leading-none">Find your Bobalicious</h2>
+            </div>
+            <p className="max-w-sm text-cream/75">
+              {BRANCHES.length} branches across Accra. Pick one and your order goes straight to them, ready in about {SHOP.pickupMinutes}{" "}
+              minutes.
             </p>
           </Reveal>
-          <RevealGroup className="grid grid-cols-1 md:grid-cols-3 border-t border-cream/25">
-            {ORIGINS.map((o, i) => (
-              <RevealItem key={o.id} className="pt-9 pb-2 md:pr-8 md:[&:not(:last-child)]:border-r border-cream/15 md:[&:not(:first-child)]:pl-8 flex flex-col gap-4">
-                <span className="font-display font-light text-[15px] tracking-[0.16em] text-[#F2735C]">0{i + 1}</span>
-                <h3 className="font-display text-3xl font-normal">{o.name}</h3>
-                <p className="text-base leading-relaxed text-cream/75 max-w-[340px]">{o.text}</p>
-                <button
-                  type="button"
-                  onClick={() => browseOrigin(o.id)}
-                  className="group self-start inline-flex items-center gap-3 min-h-11 text-sm uppercase tracking-[0.08em] hover:text-gold cursor-pointer"
+          {/* Phones: a row you swipe, with the next card peeking in. Wider screens: a grid. */}
+          <RevealGroup className="-mx-4 px-4 flex gap-3 overflow-x-auto snap-x snap-mandatory scroll-px-4 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:mx-0 sm:px-0 sm:grid sm:grid-cols-2 lg:grid-cols-5 sm:overflow-visible">
+            {BRANCHES.map((b) => {
+              const selected = branch?.id === b.id;
+              return (
+                <RevealItem
+                  key={b.id}
+                  className={`snap-start shrink-0 w-[76%] sm:w-auto rounded-3xl p-5 flex flex-col gap-4 ${selected ? "bg-gold text-ink" : "bg-cream/[0.07] hover:bg-cream/[0.12]"} transition-colors`}
                 >
-                  {o.teas} <LongArrow className="w-4 transition-transform group-hover:translate-x-1" />
-                </button>
-              </RevealItem>
-            ))}
+                  <div>
+                    <h3 className="font-display text-2xl font-semibold leading-tight">{b.name}</h3>
+                    <p className={`mt-1.5 text-sm ${selected ? "text-ink/75" : "text-cream/70"}`}>{b.address}</p>
+                  </div>
+                  <a href={b.telHref} className="inline-flex items-center gap-2 font-medium hover:underline underline-offset-4">
+                    <Phone className="w-4 h-4" strokeWidth={2} /> {b.phone}
+                  </a>
+                  <div className="mt-auto flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setBranchId(b.id)}
+                      className={`flex-1 min-h-11 rounded-full text-sm font-medium cursor-pointer ${
+                        selected ? "bg-brand-deep text-cream" : "bg-cream text-ink hover:bg-gold"
+                      }`}
+                    >
+                      {selected ? "Your branch" : "Order here"}
+                    </button>
+                    <a
+                      href={`https://wa.me/${b.whatsapp}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      aria-label={`WhatsApp ${b.name}`}
+                      className={`w-11 h-11 rounded-full flex items-center justify-center border ${selected ? "border-ink/30" : "border-cream/30"} hover:border-current`}
+                    >
+                      <MessageCircle className="w-4 h-4" />
+                    </a>
+                  </div>
+                </RevealItem>
+              );
+            })}
           </RevealGroup>
         </div>
       </section>
 
-      {/* Process */}
-      <section id="process" className="relative isolate max-w-[1280px] mx-auto px-4 sm:px-8 py-24 sm:py-28 flex flex-col gap-12 scroll-mt-20">
-        <div aria-hidden className="absolute inset-0 overflow-hidden -z-10">
-          <TeaLeaves flip className="absolute -right-24 -top-6 w-[300px] sm:w-[400px] rotate-12" />
-        </div>
-        <Reveal>
-          <h2 className="font-display font-light uppercase tracking-[0.02em] text-[34px] sm:text-[52px] leading-none">How a cup is made</h2>
+      <OurStory />
+      <Testimonials />
+
+      {/* Instagram */}
+      <section className="max-w-[1280px] mx-auto px-4 sm:px-8 py-20 sm:py-24 flex flex-col gap-10">
+        <Reveal className="text-center flex flex-col items-center gap-3">
+          <h2 className="font-display font-bold text-[40px] sm:text-6xl leading-none text-brand-deep">Sip, snap, tag us</h2>
+          <p className="text-lg text-subtle">
+            Show us your cup <a href={SHOP.instagram} target="_blank" rel="noreferrer" className="font-semibold text-brand hover:underline underline-offset-4">{SHOP.instagramHandle}</a>
+          </p>
         </Reveal>
-        <RevealGroup className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-          {STEPS.map((s, i) => (
-            <RevealItem key={s.title} className="border-t border-ink pt-6 flex flex-col gap-3">
-              <span className="font-display font-light text-5xl leading-none text-tomato">0{i + 1}</span>
-              <h3 className="font-display text-2xl font-normal">{s.title}</h3>
-              <p className="text-base leading-relaxed text-subtle">{s.text}</p>
-            </RevealItem>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
+          {[
+            { src: "/images/vibes-cheers.jpg", alt: "A woman with an afro offering a bubble tea to the camera" },
+            { src: "/images/boba-in-hand.jpg", alt: "A hand holding an iced milk tea with pearls" },
+            { src: "/images/pizza-slice-hand.jpg", alt: "A hand pulling a slice of pepperoni pizza" },
+            { src: "/images/vibes-park.jpg", alt: "A young woman with a drink, smiling at her phone in the park" },
+          ].map((img, i) => (
+            <a
+              key={img.src}
+              href={SHOP.instagram}
+              target="_blank"
+              rel="noreferrer"
+              className={`group relative aspect-square rounded-3xl overflow-hidden ${i % 2 ? "md:translate-y-6" : ""}`}
+            >
+              <Image src={img.src} alt={img.alt} fill sizes="(min-width: 768px) 25vw, 50vw" className="object-cover transition-transform duration-500 group-hover:scale-[1.02]" />
+              <span className="absolute inset-0 bg-brand-deep/0 group-hover:bg-brand-deep/40 transition-colors flex items-center justify-center">
+                <Camera className="w-8 h-8 text-cream opacity-0 group-hover:opacity-100 transition-opacity" />
+              </span>
+            </a>
           ))}
-        </RevealGroup>
+        </div>
       </section>
 
-      {/* Visit */}
+      {/* Order CTA */}
       <section className="max-w-[1280px] mx-auto px-4 sm:px-8 pb-24">
-        <Reveal className="bg-tint px-6 py-10 sm:p-14 flex flex-wrap gap-12 justify-between">
-          <div className="flex-[1_1_360px] min-w-0 flex flex-col gap-6">
-            <h2 className="font-display font-light uppercase text-[32px] sm:text-5xl leading-none">Visit the tea bar</h2>
-            <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-5 text-base">
-              <Info label="Address" value={SHOP.address} />
-              <Info label="Pickup" value={`Ready in about ${SHOP.pickupMinutes} min`} />
-              <div className="flex flex-col gap-1 sm:col-span-2">
-                <dt className="text-[13px] uppercase tracking-[0.1em] text-subtle">Hours</dt>
-                {SHOP.hours.map((h) => (
-                  <dd key={h.days} className="flex justify-between max-w-sm">
-                    <span>{h.days}</span>
-                    <span className="text-subtle">{h.time}</span>
-                  </dd>
-                ))}
-              </div>
-            </dl>
+        <Reveal className="rounded-[32px] bg-tomato text-white px-6 py-12 sm:p-16 flex flex-wrap items-center justify-between gap-8">
+          <div className="flex flex-col gap-3 max-w-xl">
+            <h2 className="font-display font-bold text-4xl sm:text-5xl leading-[1.02]">Craving hit? We&apos;ve got you.</h2>
+            <p className="text-white/85 text-lg">Order online, or call or WhatsApp {branch ? branch.name : "your nearest branch"} on {contact.phone}.</p>
           </div>
-          <div className="flex-[1_1_320px] min-w-0 flex flex-col gap-5 justify-center">
-            <h3 className="font-display text-2xl font-normal">Skip the queue</h3>
-            <p className="text-base leading-relaxed text-subtle">
-              Order ahead and we&apos;ll have it ready at the counter, or get it delivered: free over{" "}
-              {formatGHS(FREE_DELIVERY_THRESHOLD)}.
-            </p>
-            <div className="flex flex-wrap gap-3">
-              <ArrowButton href="/menu">Order now</ArrowButton>
-              <ArrowButton href={`https://wa.me/${SHOP.whatsapp}`} external tone="outline" arrow={false}>
-                <span className="inline-flex items-center gap-2">
-                  <MessageCircle className="w-4 h-4" strokeWidth={1.5} /> WhatsApp us
-                </span>
-              </ArrowButton>
-            </div>
+          <div className="flex flex-wrap gap-3">
+            <ArrowButton href="/menu" tone="mango">
+              Order now
+            </ArrowButton>
+            <ArrowButton href={`https://wa.me/${contact.whatsapp}`} external tone="ghost-light" arrow={false}>
+              <span className="inline-flex items-center gap-2">
+                <MessageCircle className="w-4 h-4" strokeWidth={2} /> WhatsApp us
+              </span>
+            </ArrowButton>
           </div>
         </Reveal>
       </section>
-    </div>
-  );
-}
-
-function Info({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex flex-col gap-1">
-      <dt className="text-[13px] uppercase tracking-[0.1em] text-subtle">{label}</dt>
-      <dd>{value}</dd>
     </div>
   );
 }

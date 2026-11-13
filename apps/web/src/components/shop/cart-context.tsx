@@ -4,6 +4,8 @@ import React, { createContext, useContext, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { FREE_DELIVERY_THRESHOLD, MAX_QUANTITY_PER_ITEM, type DiscountRule, type FulfilmentMethod } from "@bobashop/api/pricing";
 import { useTRPCClient } from "@/utils/trpc";
+import { isAvailableAt } from "@bobashop/api/branch-menu";
+import { useBranch } from "../branch";
 import {
   defaultOptions,
   describeOptions,
@@ -13,7 +15,6 @@ import {
   unitPrice,
   type CategoryId,
   type DrinkOptions,
-  type OriginId,
   type Product,
 } from "@bobashop/api/data/catalog";
 import { formatGHS } from "./money";
@@ -29,7 +30,6 @@ export interface CartItem {
 }
 
 export type CategoryFilter = CategoryId | "all";
-export type OriginFilter = OriginId | "all";
 
 interface CartContextType {
   items: CartItem[];
@@ -47,13 +47,12 @@ interface CartContextType {
   wishlist: Product[];
   isInWishlist: (productId: string) => boolean;
   toggleWishlist: (product: Product) => void;
+  clearWishlist: () => void;
   moveToWishlist: (key: string) => void;
   searchQuery: string;
   setSearchQuery: (query: string) => void;
   selectedCategory: CategoryFilter;
   setSelectedCategory: (category: CategoryFilter) => void;
-  selectedOrigin: OriginFilter;
-  setSelectedOrigin: (origin: OriginFilter) => void;
   /** Delivery or pickup, chosen in the cart or at checkout and remembered between visits. */
   fulfilment: FulfilmentMethod;
   setFulfilment: (method: FulfilmentMethod) => void;
@@ -112,10 +111,10 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<CategoryFilter>("all");
-  const [selectedOrigin, setSelectedOrigin] = useState<OriginFilter>("all");
   const [fulfilment, setFulfilment] = useState<FulfilmentMethod>("pickup");
   const [discount, setDiscount] = useState<DiscountRule | null>(null);
   const trpcClient = useTRPCClient();
+  const { branch } = useBranch();
 
   useEffect(() => {
     const stored = readStored<StoredLine[]>(CART_KEY, []);
@@ -166,7 +165,28 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     writeStored(DISCOUNT_KEY, discount?.code ?? "");
   }, [discount, hydrated]);
 
+  // A new branch may not make everything in the bag (campus kiosks serve bites only).
+  // Keep what it makes, take out the rest and say what went.
+  useEffect(() => {
+    if (!hydrated || !branch) return;
+    setItems((prev) => {
+      const gone = prev.filter((item) => !isAvailableAt(item.product, branch));
+      if (gone.length === 0) return prev;
+      const names = [...new Set(gone.map((item) => item.product.name))];
+      setTimeout(() =>
+        toast(`${names.length === 1 ? names[0] : `${names.length} items`} removed from your bag`, {
+          description: `${branch.name} doesn't serve ${names.length === 1 ? "it" : names.join(", ")}. Switch branch to order ${names.length === 1 ? "it" : "them"}.`,
+        })
+      );
+      return prev.filter((item) => isAvailableAt(item.product, branch));
+    });
+  }, [branch, hydrated]);
+
   const addToCart: CartContextType["addToCart"] = (product, { options, quantity = 1 } = {}) => {
+    if (!isAvailableAt(product, branch)) {
+      toast(`${product.name} isn't served at ${branch!.name}`, { description: "Choose another branch to order it." });
+      return;
+    }
     const line = makeLine(product, options ?? defaultOptions(product), quantity);
     setItems((prev) => {
       if (prev.some((item) => item.key === line.key)) {
@@ -178,7 +198,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     });
 
     toast.success("Added to your bag", {
-      description: `${product.name} · ${describeOptions(line.options)} · ${formatGHS(line.unitPrice)}`,
+      description: `${product.name} · ${describeOptions(line.options, product)} · ${formatGHS(line.unitPrice)}`,
       action: { label: "View bag", onClick: () => setIsCartOpen(true) },
     });
   };
@@ -207,7 +227,12 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     setWishlistIds((prev) =>
       saved ? prev.filter((id) => id !== product.id) : [...prev, product.id]
     );
-    toast(saved ? "Removed from saved drinks" : "Saved for later", { description: product.name });
+    toast(saved ? "Removed from saved" : "Saved for later", { description: product.name });
+  };
+
+  const clearWishlist = () => {
+    setWishlistIds([]);
+    toast("Saved list cleared");
   };
 
   const moveToWishlist = (key: string) => {
@@ -243,13 +268,12 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         wishlist,
         isInWishlist,
         toggleWishlist,
+        clearWishlist,
         moveToWishlist,
         searchQuery,
         setSearchQuery,
         selectedCategory,
         setSelectedCategory,
-        selectedOrigin,
-        setSelectedOrigin,
         fulfilment,
         setFulfilment,
         discount,

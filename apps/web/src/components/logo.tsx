@@ -1,23 +1,22 @@
 import React from "react";
+import Image from "next/image";
 import { SHOP } from "@bobashop/api/data/shop";
 
-/** Placeholder wordmark until the business sends its own logo. */
-export function Logo({ inverted = false }: { inverted?: boolean }) {
-  return (
-    <span className="inline-flex items-center gap-2.5">
-      <svg viewBox="0 0 32 32" aria-hidden className="w-8 h-8 shrink-0">
-        <circle cx="16" cy="16" r="14.5" fill="none" stroke="currentColor" strokeWidth="1.2" className={inverted ? "text-cream/70" : "text-ink/70"} />
-        <circle cx="12" cy="19" r="3.2" className={inverted ? "fill-cream" : "fill-ink"} />
-        <circle cx="19.5" cy="20.5" r="2.6" className={inverted ? "fill-cream" : "fill-ink"} />
-        <circle cx="17.5" cy="12" r="2.2" className="fill-gold" />
-      </svg>
-      <span
-        className={`font-display text-[20px] sm:text-[22px] font-normal uppercase tracking-[0.1em] leading-none ${
-          inverted ? "text-cream" : "text-ink"
-        }`}
-      >
-        {SHOP.name}
-      </span>
-    </span>
+/**
+ * The Bobalicious logo. Its cup and ring are see-through, so on dark backgrounds (`inverted`)
+ * it sits on a cream badge to keep the brown lettering readable.
+ */
+export function Logo({ inverted = false, className = "" }: { inverted?: boolean; className?: string }) {
+  const img = (
+    <Image
+      src="/images/logo-sm.png"
+      alt={SHOP.name}
+      width={360}
+      height={260}
+      priority={!inverted}
+      className={`w-auto ${inverted ? "h-14 sm:h-16" : "h-14 lg:h-16"} ${className}`}
+    />
   );
+  if (!inverted) return img;
+  return <span className="inline-flex rounded-2xl bg-cream px-3 py-2">{img}</span>;
 }

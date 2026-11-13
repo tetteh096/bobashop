@@ -2,7 +2,7 @@ import React from "react";
 import Link from "next/link";
 import { cn } from "@bobashop/ui/lib/utils";
 
-type Tone = "outline" | "butter" | "brand" | "sugar" | "ghost-light";
+type Tone = "outline" | "butter" | "brand" | "sugar" | "ghost-light" | "purple" | "mango";
 
 const TONES: Record<Tone, string> = {
   brand: "bg-tomato text-white hover:bg-tomato-dark",
@@ -10,6 +10,8 @@ const TONES: Record<Tone, string> = {
   outline: "border border-ink text-ink hover:bg-ink hover:text-paper",
   butter: "bg-paper text-ink hover:bg-card",
   "ghost-light": "border border-cream/60 text-cream hover:bg-cream hover:text-ink",
+  purple: "bg-brand-deep text-cream hover:bg-night",
+  mango: "bg-gold text-ink hover:bg-[#f39c0a]",
 };
 
 /** The long thin arrow used on every call to action. */
@@ -43,7 +45,7 @@ export function ArrowButton({
 }) {
   // Merged so a caller's "hidden" or spacing wins over the defaults.
   const classes = cn(
-    "group inline-flex items-center justify-center gap-3.5 min-h-13 px-7 py-3.5 text-base font-medium transition-colors cursor-pointer",
+    "group inline-flex items-center justify-center gap-3.5 min-h-13 px-7 py-3.5 rounded-full text-base font-medium transition-colors cursor-pointer",
     TONES[tone],
     className
   );
