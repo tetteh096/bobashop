@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from "react";
 import Image from "next/image";
 import { Check, Clock, MapPin, MessageCircle, Navigation, Phone, PartyPopper } from "lucide-react";
-import { BRANCHES, SHOP, findBranch } from "@bobashop/api/data/shop";
+import { SHOP } from "@bobashop/api/data/shop";
 import { Breadcrumb } from "@/components/arrow-button";
 import { Reveal, RevealGroup, RevealItem } from "@/components/motion/reveal";
 import { useBranch } from "@/components/branch";
@@ -14,7 +14,7 @@ const directions = (query: string) => `https://www.google.com/maps/dir/?api=1&de
 const wa = (number: string, text?: string) => `https://wa.me/${number}${text ? `?text=${encodeURIComponent(text)}` : ""}`;
 
 export default function ContactPage() {
-  const { branch, setBranchId, openPicker } = useBranch();
+  const { branch, branches, findBranch, setBranchId, openPicker } = useBranch();
   // The form's branch starts on the one chosen in the picker but can be changed here alone.
   const [to, setTo] = useState<string>(branch?.id ?? "");
   const [topic, setTopic] = useState(TOPICS[0]!);
@@ -94,7 +94,7 @@ export default function ContactPage() {
           </p>
         </Reveal>
         <RevealGroup className="mt-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {BRANCHES.map((b) => {
+          {branches.map((b) => {
             const mine = branch?.id === b.id;
             return (
               <RevealItem
@@ -112,11 +112,11 @@ export default function ContactPage() {
                     <span className="shrink-0 inline-flex items-center gap-1 rounded-full bg-brand text-cream text-xs font-semibold px-2.5 py-1">
                       <Check className="w-3.5 h-3.5" strokeWidth={3} /> Your branch
                     </span>
-                  ) : (
+                  ) : b.online ? (
                     <button type="button" onClick={() => setBranchId(b.id)} className="shrink-0 text-sm font-medium text-brand hover:underline underline-offset-4 cursor-pointer min-h-8">
                       Make mine
                     </button>
-                  )}
+                  ) : null}
                 </div>
                 <a href={b.telHref} className="font-display text-xl font-semibold text-brand-deep hover:text-brand self-start">
                   {b.phone}
@@ -128,7 +128,7 @@ export default function ContactPage() {
                   <a href={wa(b.whatsapp)} target="_blank" rel="noreferrer" className="min-h-11 rounded-full bg-brand-deep text-cream hover:bg-night flex items-center justify-center gap-1.5 text-sm font-medium">
                     <MessageCircle className="w-4 h-4" /> Chat
                   </a>
-                  <a href={directions(b.mapQuery)} target="_blank" rel="noreferrer" className="min-h-11 rounded-full border border-line bg-paper hover:border-brand-deep flex items-center justify-center gap-1.5 text-sm font-medium">
+                  <a href={directions(b.location ? `${b.location.lat},${b.location.lng}` : `Bobalicious ${b.name} ${b.address}`)} target="_blank" rel="noreferrer" className="min-h-11 rounded-full border border-line bg-paper hover:border-brand-deep flex items-center justify-center gap-1.5 text-sm font-medium">
                     <Navigation className="w-4 h-4" /> Map
                   </a>
                 </div>
@@ -177,7 +177,7 @@ export default function ContactPage() {
             <fieldset>
               <legend className="text-sm font-semibold mb-3">Which branch?</legend>
               <div className="flex flex-wrap gap-2">
-                {BRANCHES.map((b) => (
+                {branches.map((b) => (
                   <button key={b.id} type="button" onClick={() => setTo(b.id)} aria-pressed={to === b.id} className={pill(to === b.id)}>
                     {b.name}
                   </button>

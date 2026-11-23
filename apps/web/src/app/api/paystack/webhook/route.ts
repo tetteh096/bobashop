@@ -5,6 +5,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { ENV } from "../../../../env.server";
 import { db } from "../../../../services";
+import { smartsaleConfig } from "../../../../smartsale.server";
 
 // Paystack calls this after a charge, so an order is still marked paid if the
 // customer closes the tab before the browser-side verification runs.
@@ -29,7 +30,7 @@ export async function POST(req: NextRequest) {
   if (event.event === "charge.success" && event.data?.reference) {
     try {
       // Re-verifies with Paystack and checks the amount before marking paid.
-      await confirmOrderPayment(db, secretKey, event.data.reference);
+      await confirmOrderPayment(db, secretKey, event.data.reference, smartsaleConfig);
     } catch (error) {
       console.error("Paystack webhook: could not confirm order", event.data.reference, error);
     }

@@ -4,10 +4,10 @@ import React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Camera, MessageCircle, Phone } from "lucide-react";
-import { DRINK_CATEGORIES as CATEGORIES, type CategoryId } from "@bobashop/api/data/catalog";
-import { BRANCHES, SHOP } from "@bobashop/api/data/shop";
+import { SHOP } from "@bobashop/api/data/shop";
 import { useBranch } from "./branch";
 import { useCart } from "./shop/cart-context";
+import { useMenu } from "./shop/menu-context";
 import { Logo } from "./logo";
 import { useFeatures } from "./features";
 
@@ -16,12 +16,13 @@ const PAYMENT_METHODS = ["Visa", "Mastercard", "MTN MoMo", "Telecel Cash", "Airt
 export default function Footer() {
   const router = useRouter();
   const { setSelectedCategory } = useCart();
-  const { contact, setBranchId } = useBranch();
+  const { contact, branches, setBranchId } = useBranch();
+  const { categories } = useMenu();
   const { accountsEnabled } = useFeatures();
 
-  const browse = (category: CategoryId) => {
+  const browse = (category: string, kind: "drink" | "food") => {
     setSelectedCategory(category);
-    router.push("/menu");
+    router.push(kind === "food" ? "/menu?tab=food" : "/menu");
   };
 
   return (
@@ -43,9 +44,9 @@ export default function Footer() {
         </div>
 
         <FooterColumn title="Menu">
-          {CATEGORIES.map((cat) => (
+          {categories.filter((c) => c.kind === "drink").slice(0, 5).map((cat) => (
             <li key={cat.id}>
-              <button type="button" onClick={() => browse(cat.id)} className="hover:text-cream text-left cursor-pointer">
+              <button type="button" onClick={() => browse(cat.id, cat.kind)} className="hover:text-cream text-left cursor-pointer">
                 {cat.name}
               </button>
             </li>
@@ -69,11 +70,15 @@ export default function Footer() {
         </FooterColumn>
 
         <FooterColumn title="Our branches" className="col-span-2 lg:col-span-1" listClassName="grid grid-cols-2 gap-x-6 gap-y-3 space-y-0">
-          {BRANCHES.map((b) => (
+          {branches.map((b) => (
             <li key={b.id} className="min-w-0">
-              <button type="button" onClick={() => setBranchId(b.id)} className="block text-cream hover:text-gold cursor-pointer text-left truncate max-w-full">
-                {b.name}
-              </button>
+              {b.online ? (
+                <button type="button" onClick={() => setBranchId(b.id)} className="block text-cream hover:text-gold cursor-pointer text-left truncate max-w-full">
+                  {b.name}
+                </button>
+              ) : (
+                <span className="block text-cream truncate max-w-full">{b.name}</span>
+              )}
               <a href={b.telHref} className="block text-[13px] text-cream/60 hover:text-cream">
                 {b.phone}
               </a>

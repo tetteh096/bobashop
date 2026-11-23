@@ -2,7 +2,7 @@ import React from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { Check, Star } from "lucide-react";
-import { BRANCHES, SHOP } from "@bobashop/api/data/shop";
+import { SHOP } from "@bobashop/api/data/shop";
 import { ArrowButton, LongArrow } from "@/components/arrow-button";
 import { Reveal } from "@/components/motion/reveal";
 
@@ -11,7 +11,6 @@ const BOLT_RATING = 4.6;
 
 const STATS = [
   { value: "700", unit: "ml", label: "large cups" },
-  { value: String(BRANCHES.length), label: "branches in Accra" },
   { value: `${SHOP.pickupMinutes}`, unit: "min", label: "average pickup" },
 ];
 
@@ -95,7 +94,7 @@ export function OurStory() {
             jollof on the side. Between lectures, on a date or out with the crew, there&apos;s one near you.
           </p>
 
-          <dl className="grid grid-cols-3 rounded-3xl bg-card border border-line divide-x divide-line">
+          <dl className="grid grid-cols-2 rounded-3xl bg-card border border-line divide-x divide-line">
             {STATS.map((s) => (
               <div key={s.label} className="px-4 sm:px-6 py-5 flex flex-col gap-1">
                 <dt className="sr-only">{s.label}</dt>

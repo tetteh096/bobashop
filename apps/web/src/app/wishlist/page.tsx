@@ -10,9 +10,8 @@ import { useCart } from "@/components/shop/cart-context";
 export default function WishlistPage() {
   const { wishlist, addToCart, toggleWishlist, clearWishlist } = useCart();
 
-  // Each goes in the way it comes; open a drink to change its sweetness or toppings.
-  // Items priced by options are ordered on WhatsApp, so they can't go in the bag.
-  const quickAdd = wishlist.filter((p) => p.inStock && !p.askPrice);
+  // Each goes in the way it comes (smallest size); open an item to change its size or sweetness.
+  const quickAdd = wishlist.filter((p) => p.inStock);
 
   return (
     <div className="max-w-[1280px] mx-auto px-4 sm:px-8 pt-5 pb-24">

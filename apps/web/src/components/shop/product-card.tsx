@@ -2,27 +2,21 @@
 
 import React from "react";
 import Link from "next/link";
-import { Heart, MessageCircle, Plus } from "lucide-react";
+import { Heart, Plus } from "lucide-react";
 import type { Product } from "@bobashop/api/data/catalog";
-import { useBranch } from "../branch";
 import { useCart } from "./cart-context";
 import { ProductArt } from "./product-art";
 import { formatGHS } from "./money";
 
-const BADGE_STYLE: Record<NonNullable<Product["badge"]>, string> = {
-  "Best seller": "bg-tomato text-white",
-  New: "bg-brand-deep text-gold",
-  Promo: "bg-gold text-ink",
-};
 
-export function whatsappOrderLink(whatsapp: string, product: Product) {
-  return `https://wa.me/${whatsapp}?text=${encodeURIComponent(`Hi Bobalicious, I'd like to order ${product.name}. What are the options and prices?`)}`;
+/** True when the size (or another choice) changes the price, so the card says "from". */
+export function priceVaries(product: Product) {
+  return product.choices.some((c) => c.options.some((o) => o.priceChange !== c.options[0]!.priceChange));
 }
 
 /** An item on the menu: photo (or illustrated cup), name, one-line notes, price and a quick add. */
 export function ProductCard({ product, compact = false }: { product: Product; compact?: boolean }) {
   const { addToCart, isInWishlist, toggleWishlist } = useCart();
-  const { contact } = useBranch();
   const saved = isInWishlist(product.id);
   const href = `/menu/${product.id}` as "/";
   const isFood = product.kind === "food";
@@ -58,11 +52,6 @@ export function ProductCard({ product, compact = false }: { product: Product; co
         )}
       </Link>
 
-      {product.badge && (
-        <span className={`absolute top-4 left-4 rounded-full px-2.5 py-1 text-[11px] sm:text-xs font-semibold ${BADGE_STYLE[product.badge]}`}>
-          {product.badge}
-        </span>
-      )}
       <button
         type="button"
         onClick={() => toggleWishlist(product)}
@@ -82,32 +71,19 @@ export function ProductCard({ product, compact = false }: { product: Product; co
         <p className="mt-1 text-[13px] sm:text-sm leading-snug text-subtle line-clamp-2 min-h-[2.6em]">{product.notes}</p>
 
         <div className="mt-auto pt-3.5 flex items-center justify-between gap-2">
-          {product.askPrice ? (
-            <span className="text-[13px] sm:text-sm font-medium text-subtle leading-tight">Price depends on your choice</span>
-          ) : (
-            <span className="font-display font-bold text-lg sm:text-xl text-brand whitespace-nowrap">{formatGHS(product.price)}</span>
-          )}
-          {product.askPrice ? (
-            <a
-              href={whatsappOrderLink(contact.whatsapp, product)}
-              target="_blank"
-              rel="noreferrer"
-              aria-label={`Order ${product.name} on WhatsApp`}
-              className="w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-brand-deep text-gold hover:bg-night flex items-center justify-center shrink-0 transition-colors"
-            >
-              <MessageCircle className="w-5 h-5" strokeWidth={2} />
-            </a>
-          ) : (
-            <button
-              type="button"
-              onClick={() => addToCart(product)}
-              disabled={!product.inStock}
-              aria-label={product.inStock ? `Add ${product.name} to bag` : `${product.name} is sold out`}
-              className="w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-gold text-ink hover:bg-brand-deep hover:text-gold disabled:bg-line disabled:text-subtle flex items-center justify-center shrink-0 transition-colors cursor-pointer disabled:cursor-not-allowed"
-            >
-              <Plus className="w-5 h-5" strokeWidth={2.5} />
-            </button>
-          )}
+          <span className="font-display font-bold text-lg sm:text-xl text-brand whitespace-nowrap">
+            {priceVaries(product) && <span className="font-sans text-xs font-medium text-subtle mr-1">from</span>}
+            {formatGHS(product.fromPrice)}
+          </span>
+          <button
+            type="button"
+            onClick={() => addToCart(product)}
+            disabled={!product.inStock}
+            aria-label={product.inStock ? `Add ${product.name} to bag` : `${product.name} is sold out`}
+            className="w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-gold text-ink hover:bg-brand-deep hover:text-gold disabled:bg-line disabled:text-subtle flex items-center justify-center shrink-0 transition-colors cursor-pointer disabled:cursor-not-allowed"
+          >
+            <Plus className="w-5 h-5" strokeWidth={2.5} />
+          </button>
         </div>
       </div>
 

@@ -5,7 +5,6 @@ import Link from "next/link";
 import { Check, Clock, MapPin, Store } from "lucide-react";
 import type { inferRouterOutputs } from "@trpc/server";
 import type { AppRouter } from "@bobashop/api/routers/index";
-import { SHOP } from "@bobashop/api/data/shop";
 import { formatGHS } from "../money";
 
 export type ConfirmedOrder = inferRouterOutputs<AppRouter>["orders"]["verify"];
@@ -105,7 +104,7 @@ export function OrderSuccessModal({ order }: { order: ConfirmedOrder }) {
             </Link>
           </div>
           <p className="text-center text-xs text-subtle">
-            Questions about your order? Call {SHOP.phone} and quote {order.reference}.
+            Questions about your order? Call {order.branch?.phone ? `Bobalicious ${order.branch.name} on ${order.branch.phone}` : "the branch"} and quote {order.reference}.
           </p>
         </div>
       </div>

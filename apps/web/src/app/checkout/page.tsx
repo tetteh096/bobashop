@@ -6,6 +6,7 @@ import { useMutation } from "@tanstack/react-query";
 import { AlertTriangle, ArrowLeft, ArrowRight, Check, Clock, Loader2, Lock, MapPin, Navigation, Pencil, Route, ShoppingBag, Store, Truck } from "lucide-react";
 import { toast } from "sonner";
 import { SHOP } from "@bobashop/api/data/shop";
+import { FREE_DELIVERY_THRESHOLD } from "@bobashop/api/pricing";
 import { branchesDeliveringTo, quoteDelivery } from "@bobashop/api/branch-menu";
 import type { CustomerProfile } from "@bobashop/api/customers";
 import { useBranch } from "@/components/branch";
@@ -38,7 +39,7 @@ const STEPS: { id: Step; label: string }[] = [
 export default function CheckoutPage() {
   const trpc = useTRPC();
   const { items, clearCart, fulfilment: method, setFulfilment: setMethod, discount, setDiscount } = useCart();
-  const { branch, openPicker, setBranchId } = useBranch();
+  const { branch, branches, findBranch, openPicker, setBranchId } = useBranch();
   const { accountsEnabled } = useFeatures();
 
   const [step, setStep] = useState<Step>(1);
@@ -93,8 +94,10 @@ export default function CheckoutPage() {
       setLandmark(p.landmark ?? "");
       setGhanaPostGps(p.ghanaPostGps ?? "");
     }
-    if (!branch && p.branchId) setBranchId(p.branchId);
-    setMethod(p.method === "delivery" && (branch ?? null)?.delivery.enabled !== false ? "delivery" : "pickup");
+    const last = findBranch(p.branchId);
+    if (!branch && last?.online) setBranchId(last.id);
+    const orderingFrom = branch ?? (last?.online ? last : undefined);
+    setMethod(p.method === "delivery" && orderingFrom?.delivery.enabled ? "delivery" : "pickup");
     setUsedProfile(true);
     setErrors({});
     toast.success(`Welcome back, ${p.fullName.split(" ")[0]}`, { description: "Your details are filled in. Check them and carry on." });
@@ -203,7 +206,7 @@ export default function CheckoutPage() {
   }
 
   const closed = Boolean(branch && !branch.orderingOpen);
-  const alternatives = location && quote && !quote.ok ? branchesDeliveringTo(location, branch?.id).slice(0, 3) : [];
+  const alternatives = location && quote && !quote.ok ? branchesDeliveringTo(branches, location, branch?.id).slice(0, 3) : [];
 
   return (
     <div className="max-w-[1280px] mx-auto px-4 sm:px-8 pt-8 pb-24">
@@ -324,7 +327,11 @@ export default function CheckoutPage() {
                       <QuoteStat icon={<Truck className="w-4 h-4" />} label="Delivery" value={formatGHS(quote.fee)} />
                       <QuoteStat icon={<Clock className="w-4 h-4" />} label="Arrives in" value={`~${quote.etaMinutes} min`} />
                       <p className="col-span-3 text-sm text-ink/70">
-                        From Bobalicious {branch.name}: {formatGHS(branch.delivery.baseFee)} + {formatGHS(branch.delivery.perKm)} per km. Free over GH₵150.
+                        From Bobalicious {branch.name}:{" "}
+                        {branch.delivery.byDistance
+                          ? `${formatGHS(branch.delivery.baseFee)} + ${formatGHS(branch.delivery.perKm)} per km.`
+                          : `a flat ${formatGHS(branch.delivery.baseFee)}.`}{" "}
+                        Free over {formatGHS(FREE_DELIVERY_THRESHOLD)}.
                       </p>
                     </div>
                   )}
@@ -379,7 +386,11 @@ export default function CheckoutPage() {
                         <Clock className="w-4 h-4 shrink-0 mt-0.5" /> Ready about {SHOP.pickupMinutes} minutes after you pay
                       </p>
                       <a
-                        href={`https://www.google.com/maps/dir/?api=1&destination=${branch.location.lat},${branch.location.lng}`}
+                        href={
+                          branch.location
+                            ? `https://www.google.com/maps/dir/?api=1&destination=${branch.location.lat},${branch.location.lng}`
+                            : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`Bobalicious ${branch.name} ${branch.address}`)}`
+                        }
                         target="_blank"
                         rel="noreferrer"
                         className="mt-3 inline-flex items-center gap-1.5 text-sm font-semibold text-brand hover:underline underline-offset-4"

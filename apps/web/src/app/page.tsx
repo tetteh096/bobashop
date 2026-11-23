@@ -4,9 +4,9 @@ import React from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { Camera, MessageCircle, Phone } from "lucide-react";
-import { DRINK_CATEGORIES as CATEGORIES, PRODUCTS } from "@bobashop/api/data/catalog";
-import { BRANCHES, SHOP } from "@bobashop/api/data/shop";
+import { SHOP } from "@bobashop/api/data/shop";
 import { ProductCard } from "@/components/shop/product-card";
+import { useMenu } from "@/components/shop/menu-context";
 import { ArrowButton, LongArrow } from "@/components/arrow-button";
 import { Reveal, RevealGroup, RevealItem } from "@/components/motion/reveal";
 import { useBranch } from "@/components/branch";
@@ -15,17 +15,22 @@ import { HowItWorks } from "@/components/home/how-it-works";
 import { OurStory } from "@/components/home/our-story";
 import { Testimonials } from "@/components/home/testimonials";
 
-const FAVOURITES = [
-  ...PRODUCTS.filter((p) => p.badge === "Best seller" || p.badge === "New"),
-  ...PRODUCTS.filter((p) => ["kit-kat", "vanilla-biscoff-latte", "oreo-cookie-crush", "mangolicious"].includes(p.id)),
-].slice(0, 8);
+/** Picked out on the home page when the branch has them; the rest is filled with photographed drinks. */
+const FAVOURITE_IDS = ["kit-kat", "vanilla-biscoff-latte", "oreo-cookie-crush", "mango-licious"];
 
-const STRIP = ["Milk tea", "Matcha", "Fruit tea", "Pizza", "Call or WhatsApp", "Delivery available", "5 branches in Accra"];
+const STRIP = ["Milk tea", "Matcha", "Fruit tea", "Pizza", "Wings", "Order online", "Pickup or delivery"];
 
 export default function HomePage() {
-  const { branch, contact, setBranchId } = useBranch();
-  const orderLink = (what: string) =>
-    `https://wa.me/${contact.whatsapp}?text=${encodeURIComponent(`Hi Bobalicious, I'd like to order some ${what}.`)}`;
+  const { branch, branches, contact, setBranchId } = useBranch();
+  const { products, categories, loading } = useMenu();
+  const available = products.filter((p) => p.inStock);
+  const favourites = [
+    ...new Set([
+      ...available.filter((p) => FAVOURITE_IDS.includes(p.id)),
+      ...available.filter((p) => p.kind === "drink" && p.image),
+    ]),
+  ].slice(0, 8);
+  const drinkSections = categories.filter((c) => c.kind === "drink").slice(0, 6);
 
   return (
     <div>
@@ -54,7 +59,7 @@ export default function HomePage() {
             <h2 className="font-display font-bold text-[40px] sm:text-6xl leading-none text-brand-deep">Crowd favourites</h2>
           </div>
           <div role="list" aria-label="Menu sections" className="flex flex-wrap gap-2">
-            {CATEGORIES.map((c) => (
+            {drinkSections.map((c) => (
               <span role="listitem" key={c.id} className="rounded-full bg-tint px-4 py-2 text-sm">
                 {c.name}
               </span>
@@ -62,9 +67,9 @@ export default function HomePage() {
           </div>
         </Reveal>
         <div className="w-full grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-5">
-          {FAVOURITES.map((p) => (
-            <ProductCard key={p.id} product={p} />
-          ))}
+          {loading
+            ? Array.from({ length: 4 }, (_, i) => <div key={i} className="aspect-[4/5] rounded-[26px] bg-tint animate-pulse" />)
+            : favourites.map((p) => <ProductCard key={p.id} product={p} />)}
         </div>
         <Link href="/menu" className="self-center group inline-flex items-center gap-3 font-display text-xl font-semibold hover:text-brand">
           See the full menu <LongArrow className="transition-transform group-hover:translate-x-1" />
@@ -94,9 +99,9 @@ export default function HomePage() {
               tagStyle: "bg-tomato text-white",
               image: "/images/pizza-cheese-pull.jpg",
               title: "That cheese pull, though.",
-              text: "Hot, loaded pizza, made to share (or not).",
+              text: "Hot, loaded pizza in three sizes, made to share (or not).",
               cta: (
-                <ArrowButton href={orderLink("pizza")} external tone="brand">
+                <ArrowButton href="/menu?tab=food" tone="brand">
                   Order pizza
                 </ArrowButton>
               ),
@@ -105,8 +110,8 @@ export default function HomePage() {
               tag: "Food",
               tagStyle: "bg-cream text-ink",
               image: "/images/food-wings.jpg",
-              title: "Wings, shawarma and jollof.",
-              text: "Four kinds of wings, loaded shawarma and assorted rice. Add it to your boba order.",
+              title: "Burgers, wings, shawarma and jollof.",
+              text: "Wings four ways, loaded shawarma, salads and assorted rice. Add it to your boba order.",
               cta: (
                 <ArrowButton href="/menu?tab=food" tone="butter">
                   See the food menu
@@ -126,7 +131,6 @@ export default function HomePage() {
             </RevealItem>
           ))}
         </RevealGroup>
-        <p className="text-sm text-subtle">Pizza isn&apos;t on the online menu yet, so order it on WhatsApp from {branch ? branch.name : "your branch"}.</p>
       </section>
 
       {/* Branches */}
@@ -138,13 +142,13 @@ export default function HomePage() {
               <h2 className="font-display font-bold text-[40px] sm:text-6xl leading-none">Find your Bobalicious</h2>
             </div>
             <p className="max-w-sm text-cream/75">
-              {BRANCHES.length} branches across Accra. Pick one and your order goes straight to them, ready in about {SHOP.pickupMinutes}{" "}
-              minutes.
+              Order online and it goes straight to the branch&apos;s till, ready in about {SHOP.pickupMinutes}{" "}
+              minutes. Or call or WhatsApp any of them.
             </p>
           </Reveal>
           {/* Phones: a row you swipe, with the next card peeking in. Wider screens: a grid. */}
           <RevealGroup className="-mx-4 px-4 flex gap-3 overflow-x-auto snap-x snap-mandatory scroll-px-4 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:mx-0 sm:px-0 sm:grid sm:grid-cols-2 lg:grid-cols-5 sm:overflow-visible">
-            {BRANCHES.map((b) => {
+            {branches.map((b) => {
               const selected = branch?.id === b.id;
               return (
                 <RevealItem
@@ -159,15 +163,21 @@ export default function HomePage() {
                     <Phone className="w-4 h-4" strokeWidth={2} /> {b.phone}
                   </a>
                   <div className="mt-auto flex gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setBranchId(b.id)}
-                      className={`flex-1 min-h-11 rounded-full text-sm font-medium cursor-pointer ${
-                        selected ? "bg-brand-deep text-cream" : "bg-cream text-ink hover:bg-gold"
-                      }`}
-                    >
-                      {selected ? "Your branch" : "Order here"}
-                    </button>
+                    {b.online ? (
+                      <button
+                        type="button"
+                        onClick={() => setBranchId(b.id)}
+                        className={`flex-1 min-h-11 rounded-full text-sm font-medium cursor-pointer ${
+                          selected ? "bg-brand-deep text-cream" : "bg-cream text-ink hover:bg-gold"
+                        }`}
+                      >
+                        {selected ? "Your branch" : "Order here"}
+                      </button>
+                    ) : (
+                      <a href={b.telHref} className="flex-1 min-h-11 rounded-full text-sm font-medium flex items-center justify-center border border-cream/30 hover:border-cream">
+                        Call to order
+                      </a>
+                    )}
                     <a
                       href={`https://wa.me/${b.whatsapp}`}
                       target="_blank"

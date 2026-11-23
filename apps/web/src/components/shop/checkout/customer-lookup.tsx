@@ -4,8 +4,8 @@ import React, { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { Loader2, MapPin, Search, Store, UserRound, X } from "lucide-react";
 import type { CustomerProfile } from "@bobashop/api/customers";
-import { findBranch } from "@bobashop/api/data/shop";
 import { useTRPC } from "@/utils/trpc";
+import { useBranch } from "@/components/branch";
 
 /** "024 *** 4567", so the confirm step doesn't show someone else's full number. */
 function maskPhone(phone: string) {
@@ -24,6 +24,7 @@ function maskEmail(email: string) {
  */
 export function CustomerLookup({ onUse, used }: { onUse: (profile: CustomerProfile) => void; used: boolean }) {
   const trpc = useTRPC();
+  const { findBranch } = useBranch();
   const lookup = useMutation(trpc.customers.lookup.mutationOptions());
   const [query, setQuery] = useState("");
   const [found, setFound] = useState<CustomerProfile | null>(null);

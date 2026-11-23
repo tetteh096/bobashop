@@ -18,9 +18,10 @@ export function FulfilmentChoice({
   onChange: (method: FulfilmentMethod) => void;
   compact?: boolean;
 }) {
-  const { branch } = useBranch();
-  const deliveryOff = Boolean(branch && !branch.delivery.enabled);
-  const from = lowestDeliveryFee(branch);
+  const { branch, branches } = useBranch();
+  const deliveryOff = branch ? !branch.delivery.enabled : !branches.some((b) => b.delivery.enabled);
+  const from = lowestDeliveryFee(branch, branches);
+  const pricing = branch && !branch.delivery.byDistance ? "Flat fee" : "By distance";
 
   const options: { id: FulfilmentMethod; icon: typeof Truck; title: string; short: string; text: string; disabled?: boolean }[] = [
     {
@@ -29,8 +30,8 @@ export function FulfilmentChoice({
       title: branch ? `Deliver from ${branch.name}` : "Deliver to me",
       short: "Delivery",
       text: deliveryOff
-        ? `${branch!.name} is pickup only.`
-        : `${from !== null ? `From ${formatGHS(from)}, ` : ""}by distance${branch ? ` (up to ${branch.delivery.maxKm} km)` : ""}. Free over ${formatGHS(FREE_DELIVERY_THRESHOLD)}.`,
+        ? `${branch ? branch.name : "Online delivery"} is pickup only for now.`
+        : `${pricing}${from !== null ? `, from ${formatGHS(from)}` : ""}${branch ? ` (up to ${branch.delivery.maxKm} km)` : ""}. Free over ${formatGHS(FREE_DELIVERY_THRESHOLD)}.`,
       disabled: deliveryOff,
     },
     {

@@ -13,6 +13,7 @@ import { ThemeProvider } from "./theme-provider";
 import { CartProvider } from "./shop/cart-context";
 import { FeaturesProvider } from "./features";
 import { BranchProvider } from "./branch";
+import { MenuProvider } from "./shop/menu-context";
 
 // The drawer only renders once opened, so its code can load after the page.
 const CartDrawer = dynamic(() => import("./shop/cart-drawer").then((mod) => mod.CartDrawer), {
@@ -32,10 +33,12 @@ export default function Providers({ children, accountsEnabled }: { children: Rea
           <MotionConfig reducedMotion="user">
             <LazyMotion features={domAnimation} strict>
               <BranchProvider>
-                <CartProvider>
-                  {children}
-                  <CartDrawer />
-                </CartProvider>
+                <MenuProvider>
+                  <CartProvider>
+                    {children}
+                    <CartDrawer />
+                  </CartProvider>
+                </MenuProvider>
               </BranchProvider>
             </LazyMotion>
           </MotionConfig>

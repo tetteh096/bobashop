@@ -3,7 +3,9 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { AnimatePresence, m } from "motion/react";
 import { Check, ChevronDown, MapPin, MessageCircle, Phone, X } from "lucide-react";
-import { BRANCHES, SHOP, findBranch, type Branch } from "@bobashop/api/data/shop";
+import { useQuery } from "@tanstack/react-query";
+import type { Branch } from "@bobashop/api/data/shop";
+import { useTRPC } from "@/utils/trpc";
 
 const STORAGE_KEY = "bobalicious.branch";
 const DISMISSED_KEY = "bobalicious.branch-dismissed";
@@ -11,6 +13,10 @@ const DISMISSED_KEY = "bobalicious.branch-dismissed";
 interface BranchContextType {
   /** The branch the customer is ordering from, once they've picked one. */
   branch: Branch | undefined;
+  /** Every branch, live from SmartSale: online ones first, then call-only shops. */
+  branches: Branch[];
+  branchesLoading: boolean;
+  findBranch: (id: string | null | undefined) => Branch | undefined;
   setBranchId: (id: string) => void;
   openPicker: () => void;
   /** The chosen branch's numbers, or the main line before one is chosen. */
@@ -36,19 +42,27 @@ function write(key: string, value: string) {
 }
 
 export function BranchProvider({ children }: { children: React.ReactNode }) {
+  const trpc = useTRPC();
+  // Re-read every minute: a branch stops taking orders when its tills close.
+  const { data, isPending } = useQuery(trpc.menu.branches.queryOptions(undefined, { staleTime: 30_000, refetchInterval: 60_000 }));
+  const branches = useMemo(() => data ?? [], [data]);
+  const findBranch = useCallback((id: string | null | undefined) => branches.find((b) => b.id === id), [branches]);
+
   const [branchId, setId] = useState<string | null>(null);
   const [pickerOpen, setPickerOpen] = useState(false);
 
   // Read the saved branch after mount so server and first client render match.
-  // A first-time visitor gets the picker once; closing it doesn't bring it back.
   useEffect(() => {
-    const saved = read(STORAGE_KEY);
-    if (findBranch(saved)) setId(saved);
-    else if (!read(DISMISSED_KEY)) {
-      const t = setTimeout(() => setPickerOpen(true), 700);
-      return () => clearTimeout(t);
-    }
+    setId(read(STORAGE_KEY));
   }, []);
+
+  // A first-time visitor gets the picker once there's something to pick; closing it doesn't bring it back.
+  useEffect(() => {
+    if (isPending || read(STORAGE_KEY) || read(DISMISSED_KEY)) return;
+    if (branches.filter((b) => b.online).length < 2) return;
+    const t = setTimeout(() => setPickerOpen(true), 700);
+    return () => clearTimeout(t);
+  }, [isPending, branches]);
 
   const setBranchId = useCallback((id: string) => {
     setId(id);
@@ -60,15 +74,23 @@ export function BranchProvider({ children }: { children: React.ReactNode }) {
     write(DISMISSED_KEY, "1");
   }, []);
 
-  const branch = findBranch(branchId);
+  // Only a branch that takes orders online can be the one ordered from. While just one does,
+  // there's nothing to choose.
+  const saved = findBranch(branchId);
+  const online = branches.filter((b) => b.online);
+  const branch = saved?.online ? saved : online.length === 1 ? online[0] : undefined;
   const value = useMemo<BranchContextType>(
     () => ({
       branch,
+      branches,
+      branchesLoading: isPending,
+      findBranch,
       setBranchId,
       openPicker: () => setPickerOpen(true),
-      contact: branch ?? { phone: SHOP.phone, telHref: SHOP.telHref, whatsapp: SHOP.whatsapp },
+      // Before a branch is chosen, the first one SmartSale lists.
+      contact: branch ?? branches[0] ?? { phone: "", telHref: "", whatsapp: "" },
     }),
-    [branch, setBranchId]
+    [branch, branches, isPending, findBranch, setBranchId]
   );
 
   return (
@@ -76,6 +98,8 @@ export function BranchProvider({ children }: { children: React.ReactNode }) {
       {children}
       <BranchPicker
         open={pickerOpen}
+        branches={branches}
+        loading={isPending}
         current={branch?.id}
         onClose={closePicker}
         onChoose={(id) => {
@@ -112,11 +136,15 @@ export function BranchButton({ className = "" }: { className?: string }) {
 
 function BranchPicker({
   open,
+  branches,
+  loading,
   current,
   onClose,
   onChoose,
 }: {
   open: boolean;
+  branches: Branch[];
+  loading: boolean;
   current: string | undefined;
   onClose: () => void;
   onChoose: (id: string) => void;
@@ -170,8 +198,9 @@ function BranchPicker({
               <p className="mt-2 text-[15px] text-ink/75">Pick a branch for pickup or delivery. You can change it any time.</p>
             </div>
 
+            {loading && <p className="p-6 text-center text-subtle">Finding branches…</p>}
             <ul className="p-4 sm:p-6 grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {BRANCHES.map((b) => {
+              {branches.map((b) => {
                 const selected = b.id === current;
                 return (
                   <li key={b.id}>
@@ -188,11 +217,17 @@ function BranchPicker({
                             {b.address}
                           </p>
                           <div className="mt-2.5 flex flex-wrap gap-1.5">
-                            {!b.orderingOpen && <span className="rounded-full bg-tomato-soft text-tomato-dark px-2.5 py-1 text-xs font-semibold">Not taking orders</span>}
-                            <span className="rounded-full bg-tint px-2.5 py-1 text-xs font-medium">{b.kitchen === "full" ? "Drinks + full food menu" : "Drinks + bites"}</span>
-                            <span className="rounded-full bg-tint px-2.5 py-1 text-xs font-medium">
-                              {b.delivery.enabled ? `Delivery up to ${b.delivery.maxKm} km` : "Pickup only"}
-                            </span>
+                            {!b.online ? (
+                              <span className="rounded-full bg-tint px-2.5 py-1 text-xs font-medium">Call or WhatsApp to order</span>
+                            ) : (
+                              <>
+                                {!b.orderingOpen && <span className="rounded-full bg-tomato-soft text-tomato-dark px-2.5 py-1 text-xs font-semibold">Not taking orders right now</span>}
+                                <span className="rounded-full bg-tint px-2.5 py-1 text-xs font-medium">Order online</span>
+                                <span className="rounded-full bg-tint px-2.5 py-1 text-xs font-medium">
+                                  {b.delivery.enabled ? `Delivery up to ${b.delivery.maxKm} km` : "Pickup only"}
+                                </span>
+                              </>
+                            )}
                           </div>
                         </div>
                         {selected && (
@@ -202,13 +237,19 @@ function BranchPicker({
                         )}
                       </div>
                       <div className="mt-auto flex items-center gap-2">
-                        <button
-                          type="button"
-                          onClick={() => onChoose(b.id)}
-                          className="flex-1 min-h-11 rounded-full bg-brand text-cream hover:bg-brand-dark text-sm font-medium cursor-pointer"
-                        >
-                          {selected ? "Ordering here" : "Order from here"}
-                        </button>
+                        {b.online ? (
+                          <button
+                            type="button"
+                            onClick={() => onChoose(b.id)}
+                            className="flex-1 min-h-11 rounded-full bg-brand text-cream hover:bg-brand-dark text-sm font-medium cursor-pointer"
+                          >
+                            {selected ? "Ordering here" : "Order from here"}
+                          </button>
+                        ) : (
+                          <a href={b.telHref} className="flex-1 min-h-11 rounded-full bg-tint hover:bg-gold-soft text-sm font-medium flex items-center justify-center">
+                            Call {b.phone}
+                          </a>
+                        )}
                         <a
                           href={b.telHref}
                           aria-label={`Call ${b.name}, ${b.phone}`}

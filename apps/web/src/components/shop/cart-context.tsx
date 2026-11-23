@@ -1,40 +1,38 @@
 "use client";
 
-import React, { createContext, useContext, useEffect, useState } from "react";
+import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { FREE_DELIVERY_THRESHOLD, MAX_QUANTITY_PER_ITEM, type DiscountRule, type FulfilmentMethod } from "@bobashop/api/pricing";
 import { useTRPCClient } from "@/utils/trpc";
-import { isAvailableAt } from "@bobashop/api/branch-menu";
 import { useBranch } from "../branch";
+import { useMenu } from "./menu-context";
 import {
   defaultOptions,
   describeOptions,
-  findProduct,
   normaliseOptions,
   optionsProblem,
   unitPrice,
-  type CategoryId,
-  type DrinkOptions,
+  type ItemOptions,
   type Product,
 } from "@bobashop/api/data/catalog";
 import { formatGHS } from "./money";
 
 export interface CartItem {
-  /** Drink id plus its options, so two differently made cups are separate lines. */
+  /** Item id plus its options, so two differently made cups are separate lines. */
   key: string;
   product: Product;
-  options: DrinkOptions;
-  /** Price of one cup with these options, from the current menu. */
+  options: ItemOptions;
+  /** Price of one with these options, from the branch's menu as it is now. */
   unitPrice: number;
   quantity: number;
 }
 
-export type CategoryFilter = CategoryId | "all";
+export type CategoryFilter = string;
 
 interface CartContextType {
   items: CartItem[];
   /** Without options, the drink goes in the way it comes (regular, 50% sweet, less ice). */
-  addToCart: (product: Product, options?: { options?: DrinkOptions; quantity?: number }) => void;
+  addToCart: (product: Product, options?: { options?: ItemOptions; quantity?: number }) => void;
   removeFromCart: (key: string) => void;
   updateQuantity: (key: string, quantity: number) => void;
   clearCart: () => void;
@@ -68,25 +66,24 @@ const WISHLIST_KEY = "boba-saved";
 const DISCOUNT_KEY = "boba-discount";
 const FULFILMENT_KEY = "boba-fulfilment";
 
-type StoredLine = { id: string; options: DrinkOptions; quantity: number };
+type StoredLine = { key: string; id: string; options: ItemOptions; quantity: number };
 
-export function lineKey(productId: string, options: DrinkOptions) {
-  const o = normaliseOptions(options);
-  return `${productId}::${o.size}:${o.sweetness}:${o.ice}:${o.toppings.join("+")}`;
+export function lineKey(productId: string, options: ItemOptions) {
+  return `${productId}::${JSON.stringify(normaliseOptions(options))}`;
 }
 
-function makeLine(product: Product, options: DrinkOptions, quantity: number): CartItem {
+function storedLine(id: string, options: ItemOptions, quantity: number): StoredLine {
   const normalised = normaliseOptions(options);
-  return {
-    key: lineKey(product.id, normalised),
-    product,
-    options: normalised,
-    unitPrice: unitPrice(product, normalised),
-    quantity,
-  };
+  return { key: lineKey(id, normalised), id, options: normalised, quantity };
 }
 
-// Only ids, options and quantities are stored, so prices always come from the current menu.
+/** Older bags stored drink options as size/sweetness/ice/toppings; those lines are dropped. */
+function isStoredLine(x: unknown): x is Omit<StoredLine, "key"> {
+  const l = x as StoredLine;
+  return Boolean(l && typeof l.id === "string" && l.options && typeof l.options.choices === "object" && l.quantity > 0);
+}
+
+// Only ids, options and quantities are stored, so prices always come from the branch's menu.
 function readStored<T>(key: string, fallback: T): T {
   try {
     const raw = window.localStorage.getItem(key);
@@ -105,7 +102,7 @@ function writeStored(key: string, value: unknown) {
 }
 
 export function CartProvider({ children }: { children: React.ReactNode }) {
-  const [items, setItems] = useState<CartItem[]>([]);
+  const [lines, setLines] = useState<StoredLine[]>([]);
   const [wishlistIds, setWishlistIds] = useState<string[]>([]);
   const [hydrated, setHydrated] = useState(false);
   const [isCartOpen, setIsCartOpen] = useState(false);
@@ -115,19 +112,12 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const [discount, setDiscount] = useState<DiscountRule | null>(null);
   const trpcClient = useTRPCClient();
   const { branch } = useBranch();
+  const { findProduct, products, menuBranchId, loading: menuLoading } = useMenu();
 
   useEffect(() => {
-    const stored = readStored<StoredLine[]>(CART_KEY, []);
-    setItems(
-      stored.flatMap(({ id, options, quantity }) => {
-        const product = findProduct(id);
-        if (!product || !options || quantity <= 0) return [];
-        // Drop lines the menu can no longer make (a topping removed, a drink no longer served hot).
-        if (optionsProblem(product, normaliseOptions(options))) return [];
-        return [makeLine(product, options, quantity)];
-      })
-    );
-    setWishlistIds(readStored<string[]>(WISHLIST_KEY, []).filter((id) => findProduct(id)));
+    const stored = readStored<unknown[]>(CART_KEY, []);
+    setLines((Array.isArray(stored) ? stored : []).filter(isStoredLine).map((l) => storedLine(l.id, l.options, l.quantity)));
+    setWishlistIds(readStored<string[]>(WISHLIST_KEY, []).filter((id) => typeof id === "string"));
     setFulfilment(readStored<string>(FULFILMENT_KEY, "pickup") === "delivery" ? "delivery" : "pickup");
     setHydrated(true);
   }, []);
@@ -136,9 +126,21 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     if (!hydrated) return;
     writeStored(
       CART_KEY,
-      items.map((item): StoredLine => ({ id: item.product.id, options: item.options, quantity: item.quantity }))
+      lines.map(({ id, options, quantity }) => ({ id, options, quantity }))
     );
-  }, [items, hydrated]);
+  }, [lines, hydrated]);
+
+  // Each line priced from the menu on screen. Lines it can't make wait here until the
+  // branch's own menu has loaded, and are then taken out below.
+  const items = useMemo(
+    () =>
+      lines.flatMap((line): CartItem[] => {
+        const product = findProduct(line.id);
+        if (!product || optionsProblem(product, line.options)) return [];
+        return [{ key: line.key, product, options: line.options, unitPrice: unitPrice(product, line.options), quantity: line.quantity }];
+      }),
+    [lines, findProduct]
+  );
 
   useEffect(() => {
     if (!hydrated) return;
@@ -165,46 +167,44 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     writeStored(DISCOUNT_KEY, discount?.code ?? "");
   }, [discount, hydrated]);
 
-  // A new branch may not make everything in the bag (campus kiosks serve bites only).
-  // Keep what it makes, take out the rest and say what went.
+  // Once the branch's menu is in, take out what it doesn't make today (or not in that size)
+  // and say what went. Prices of what stays follow the menu by themselves.
+  const menuIsCurrent = hydrated && !menuLoading && products.length > 0 && (!branch || menuBranchId === branch.id);
   useEffect(() => {
-    if (!hydrated || !branch) return;
-    setItems((prev) => {
-      const gone = prev.filter((item) => !isAvailableAt(item.product, branch));
-      if (gone.length === 0) return prev;
-      const names = [...new Set(gone.map((item) => item.product.name))];
-      setTimeout(() =>
-        toast(`${names.length === 1 ? names[0] : `${names.length} items`} removed from your bag`, {
-          description: `${branch.name} doesn't serve ${names.length === 1 ? "it" : names.join(", ")}. Switch branch to order ${names.length === 1 ? "it" : "them"}.`,
-        })
-      );
-      return prev.filter((item) => isAvailableAt(item.product, branch));
+    if (!menuIsCurrent) return;
+    const gone = lines.filter((line) => {
+      const product = findProduct(line.id);
+      return !product || optionsProblem(product, line.options);
     });
-  }, [branch, hydrated]);
+    if (gone.length === 0) return;
+    setLines((prev) => prev.filter((line) => !gone.includes(line)));
+    const where = branch?.name ?? "This branch";
+    toast(`${gone.length === 1 ? "An item was" : `${gone.length} items were`} removed from your bag`, {
+      description: `${where} isn't serving ${gone.length === 1 ? "it" : "them"} today, or not in the size you chose.`,
+    });
+  }, [menuIsCurrent, lines, findProduct, branch]);
 
   const addToCart: CartContextType["addToCart"] = (product, { options, quantity = 1 } = {}) => {
-    if (!isAvailableAt(product, branch)) {
-      toast(`${product.name} isn't served at ${branch!.name}`, { description: "Choose another branch to order it." });
+    if (!product.inStock) {
+      toast(`${product.name} is sold out`, { description: "Try another branch, or something else from the menu." });
       return;
     }
-    const line = makeLine(product, options ?? defaultOptions(product), quantity);
-    setItems((prev) => {
-      if (prev.some((item) => item.key === line.key)) {
-        return prev.map((item) =>
-          item.key === line.key ? { ...item, quantity: Math.min(MAX_QUANTITY_PER_ITEM, item.quantity + quantity) } : item
-        );
+    const line = storedLine(product.id, options ?? defaultOptions(product), quantity);
+    setLines((prev) => {
+      if (prev.some((l) => l.key === line.key)) {
+        return prev.map((l) => (l.key === line.key ? { ...l, quantity: Math.min(MAX_QUANTITY_PER_ITEM, l.quantity + quantity) } : l));
       }
       return [...prev, line];
     });
 
     toast.success("Added to your bag", {
-      description: `${product.name} · ${describeOptions(line.options, product)} · ${formatGHS(line.unitPrice)}`,
+      description: [product.name, describeOptions(line.options, product), formatGHS(unitPrice(product, line.options))].filter(Boolean).join(" · "),
       action: { label: "View bag", onClick: () => setIsCartOpen(true) },
     });
   };
 
   const removeFromCart = (key: string) => {
-    setItems((prev) => prev.filter((item) => item.key !== key));
+    setLines((prev) => prev.filter((l) => l.key !== key));
   };
 
   const updateQuantity = (key: string, quantity: number) => {
@@ -212,11 +212,11 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       removeFromCart(key);
       return;
     }
-    setItems((prev) => prev.map((item) => (item.key === key ? { ...item, quantity } : item)));
+    setLines((prev) => prev.map((l) => (l.key === key ? { ...l, quantity: Math.min(MAX_QUANTITY_PER_ITEM, quantity) } : l)));
   };
 
   const clearCart = () => {
-    setItems([]);
+    setLines([]);
     setDiscount(null);
   };
 

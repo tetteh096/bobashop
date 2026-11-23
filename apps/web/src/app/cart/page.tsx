@@ -4,7 +4,7 @@ import React from "react";
 import Link from "next/link";
 import { ArrowRight, Heart, Lock, Minus, Plus, ShoppingBag, Trash2 } from "lucide-react";
 import { MAX_QUANTITY_PER_ITEM } from "@bobashop/api/pricing";
-import { categoryName, describeOptions } from "@bobashop/api/data/catalog";
+import { describeOptions } from "@bobashop/api/data/catalog";
 import { useCart } from "@/components/shop/cart-context";
 import { OrderSummary } from "@/components/shop/order-summary";
 import { FulfilmentChoice } from "@/components/shop/fulfilment-choice";
@@ -52,7 +52,7 @@ export default function CartPage() {
                     <div className="flex-1 min-w-0 flex flex-col">
                       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-1 sm:gap-3">
                         <div className="min-w-0">
-                          <p className="text-xs font-medium text-subtle">{categoryName(product.category)}</p>
+                          <p className="text-xs font-medium text-subtle">{product.categoryName}</p>
                           <p className="mt-0.5 font-display text-base sm:text-lg font-normal leading-snug">{product.name}</p>
                           <p className="mt-0.5 text-sm text-subtle">{describeOptions(options, product)}</p>
                         </div>

@@ -1,5 +1,3 @@
-import { findProduct, type Product } from "./data/catalog";
-
 // Shared by the storefront (for display) and the orders router (for charging),
 // so the totals a customer sees are the totals Paystack is asked to collect.
 // Delivery is priced by distance from the branch (see branch-menu.ts); orders over this are free.
@@ -7,9 +5,6 @@ export const FREE_DELIVERY_THRESHOLD = 150;
 export const MAX_QUANTITY_PER_ITEM = 20;
 
 export type FulfilmentMethod = "delivery" | "pickup";
-
-export { findProduct };
-export type { Product };
 
 /** `distanceFee` is the branch's quote for the customer's pin, or null before a pin is set. */
 export function deliveryFeeFor(method: FulfilmentMethod, subtotal: number, distanceFee: number | null) {

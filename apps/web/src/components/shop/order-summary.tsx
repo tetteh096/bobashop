@@ -33,8 +33,8 @@ export function OrderSummary({
 }) {
   const { items, totalItems, freeShippingRemaining, discount: rule } = useCart();
   const { subtotal, deliveryFee, deliveryPending, discount, total, discountShortfall } = useOrderTotals(method, distanceFee);
-  const { branch } = useBranch();
-  const fromFee = lowestDeliveryFee(branch);
+  const { branch, branches } = useBranch();
+  const fromFee = lowestDeliveryFee(branch, branches);
 
   // Why an accepted code isn't taking anything off right now.
   const codeNote =

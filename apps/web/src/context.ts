@@ -4,6 +4,7 @@ import type { NextRequest } from "next/server";
 import { ENV } from "./env.server";
 import { db } from "./services";
 import { auth } from "./services";
+import { smartsaleConfig } from "./smartsale.server";
 
 export async function createContext(req: NextRequest): Promise<ApiContext> {
   const session = auth ? await auth.api.getSession({ headers: req.headers }) : null;
@@ -11,6 +12,7 @@ export async function createContext(req: NextRequest): Promise<ApiContext> {
     db,
     session,
     paystackSecretKey: ENV.PAYSTACK_SECRET_KEY || undefined,
+    smartsale: smartsaleConfig,
   };
 }
 

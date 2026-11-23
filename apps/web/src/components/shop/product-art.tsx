@@ -89,9 +89,24 @@ export function SideCup({ id, color, label, className = "" }: { id: string; colo
   );
 }
 
+/** A plate in the section's colour, for food the shop hasn't photographed yet. */
+export function Plate({ color, label, className = "" }: { color: string; label?: string; className?: string }) {
+  return (
+    <svg viewBox="0 0 160 160" className={className} role={label ? "img" : undefined} aria-label={label} aria-hidden={label ? undefined : true}>
+      <ellipse cx="80" cy="128" rx="58" ry="8" fill="#341830" fillOpacity="0.08" />
+      <circle cx="80" cy="80" r="58" fill="#FFF7E8" stroke="#341830" strokeOpacity="0.12" strokeWidth="2" />
+      <circle cx="80" cy="80" r="42" fill={color} fillOpacity="0.55" />
+      <circle cx="80" cy="80" r="42" fill="none" stroke="#fff" strokeOpacity="0.5" strokeWidth="3" />
+      {/* fork and knife */}
+      <path d="M14 46v22a6 6 0 0 0 6 6v44M20 46v20M26 46v22a6 6 0 0 1-6 6" fill="none" stroke="#341830" strokeOpacity="0.35" strokeWidth="3" strokeLinecap="round" />
+      <path d="M144 118V46c-8 6-10 18-10 30h10" fill="none" stroke="#341830" strokeOpacity="0.35" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
 /**
- * The drink's top-down photo when there is one; otherwise the illustrated cup in the
- * drink's colour, so the menu looks deliberate before real photos exist.
+ * The item's photo when there is one; otherwise an illustrated cup (drinks) or plate (food)
+ * in its colour, so the menu looks deliberate before real photos exist.
  */
 export function ProductArt({
   product,
@@ -106,8 +121,9 @@ export function ProductArt({
   sizes?: string;
 }) {
   if (product.image) {
-    // Food photos are cut-outs on white: multiply drops the white into whatever tile is behind.
-    const fit = product.kind === "food" ? "object-contain mix-blend-multiply" : "object-cover";
+    // Our food photos are cut-outs on white: multiply drops the white into whatever tile is behind.
+    const cutOut = product.kind === "food" && product.image.startsWith("/");
+    const fit = cutOut ? "object-contain mix-blend-multiply" : "object-cover";
     return (
       <Image
         src={product.image}
@@ -120,5 +136,6 @@ export function ProductArt({
       />
     );
   }
+  if (product.kind === "food") return <Plate color={product.color} label={product.name} className={className} />;
   return <SideCup id={product.id} color={product.color} label={product.name} className={className} />;
 }

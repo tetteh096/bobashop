@@ -13,6 +13,8 @@ const securityHeaders = [
 
 const nextConfig: NextConfig = {
   typedRoutes: true,
+  // Item photos uploaded in SmartSale (the shops' POS).
+  images: { remotePatterns: [{ protocol: "https", hostname: "sserp-smartsaleerp.s3.eu-west-1.amazonaws.com" }] },
   reactCompiler: true,
   async headers() {
     return [{ source: "/(.*)", headers: securityHeaders }];
