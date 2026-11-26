@@ -68,6 +68,8 @@ export type OrderDocument = {
   }[];
   subtotal: number;
   deliveryFee: number;
+  /** The platform's fee (pricing.ts PLATFORM_FEE). Included in `total`, left out of the POS sale. */
+  platformFee?: number;
   discount?: { code: string; label: string; amount: number; percent?: number };
   total: number;
   currency: "GHS";
@@ -230,7 +232,8 @@ export async function sendToPos(orders: ReturnType<typeof ordersCollection>, con
     ...(f.method === "delivery" && order.smartsale.delivery && { delivery: { fee: order.deliveryFee, ...order.smartsale.delivery } }),
     subtotal: order.subtotal,
     discount: order.discount,
-    total: order.total,
+    // What the shop received: the platform fee is the site's, not the branch's.
+    total: roundMoney(order.total - (order.platformFee ?? 0)),
     channel: order.payment?.channel,
     etaMinutes: order.smartsale.etaMinutes,
   });
@@ -260,6 +263,7 @@ function toPublicOrder(order: OrderDocument) {
     items: order.items,
     subtotal: order.subtotal,
     deliveryFee: order.deliveryFee,
+    platformFee: order.platformFee ?? 0,
     discount: order.discount ?? null,
     total: order.total,
     currency: order.currency,
@@ -364,7 +368,7 @@ export const ordersRouter = router({
         etaMinutes = quote.etaMinutes;
       }
 
-      const { deliveryFee, discount, total, discountShortfall } = computeTotals(subtotal, input.fulfilment.method, rule, distanceFee);
+      const { deliveryFee, platformFee, discount, total, discountShortfall } = computeTotals(subtotal, input.fulfilment.method, rule, distanceFee);
       if (rule && discount === 0) {
         throw new TRPCError({
           code: "BAD_REQUEST",
@@ -404,6 +408,7 @@ export const ordersRouter = router({
         items,
         subtotal,
         deliveryFee,
+        ...(platformFee > 0 && { platformFee }),
         ...(rule && { discount: { code: rule.code, label: rule.label, amount: discount, ...(rule.kind === "percent" && { percent: rule.value }) } }),
         total,
         currency: "GHS",

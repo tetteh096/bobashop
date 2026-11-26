@@ -3,9 +3,9 @@
 // Leaflet touches `window`, so this file is only ever loaded with next/dynamic({ ssr: false }).
 import "leaflet/dist/leaflet.css";
 
-import { useEffect, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import L from "leaflet";
-import { MapContainer, Marker, TileLayer, Tooltip, useMap, useMapEvents } from "react-leaflet";
+import { MapContainer, Marker, Polyline, TileLayer, Tooltip, useMap, useMapEvents } from "react-leaflet";
 
 export type LatLng = { lat: number; lng: number };
 
@@ -41,22 +41,20 @@ function ClickToMove({ onChange }: { onChange: (pos: LatLng) => void }) {
 }
 
 /**
- * First view: the branch and the pin together, so the distance between them is obvious.
- * After that, each pin move zooms in on the pin so it can be placed precisely.
+ * When the pin jumps (a search result, "Use my location", the first view), show the branch and
+ * the pin together so the route between them is in view. When the customer drags the pin or
+ * taps the map, leave the view alone: they are placing it precisely.
  */
-function Recenter({ position, store }: { position: LatLng; store?: MapStore }) {
+function Recenter({ position, store, movedOnMap }: { position: LatLng; store?: MapStore; movedOnMap: React.RefObject<boolean> }) {
   const map = useMap();
-  const first = useRef(true);
   useEffect(() => {
-    if (first.current) {
-      first.current = false;
-      if (store) {
-        map.fitBounds(L.latLngBounds([store.location, position]), { padding: [40, 40], maxZoom: 15 });
-        return;
-      }
+    if (movedOnMap.current) {
+      movedOnMap.current = false;
+      return;
     }
-    map.flyTo(position, Math.max(map.getZoom(), 16), { duration: 0.6 });
-    // `store` is only read for the first view.
+    if (store) map.fitBounds(L.latLngBounds([store.location, position]), { padding: [48, 48], maxZoom: 16 });
+    else map.flyTo(position, Math.max(map.getZoom(), 16), { duration: 0.6 });
+    // `store` only changes with the branch; the view follows the pin.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [map, position]);
   return null;
@@ -66,19 +64,34 @@ export default function LocationMap({
   position,
   onChange,
   store,
+  route,
 }: {
   position: LatLng;
   onChange: (pos: LatLng) => void;
   store?: MapStore;
+  /**
+   * The way from the branch to the pin: the road route when we have it, else null for a
+   * straight dashed line. Undefined (no pin yet) draws nothing.
+   */
+  route?: LatLng[] | null;
 }) {
+  // Pin moves the customer makes on the map itself, which shouldn't move the view.
+  const movedOnMap = useRef(false);
+  const moveOnMap = useCallback(
+    (pos: LatLng) => {
+      movedOnMap.current = true;
+      onChange(pos);
+    },
+    [onChange]
+  );
   const handlers = useMemo(
     () => ({
       dragend: (e: L.LeafletEvent) => {
         const { lat, lng } = (e.target as L.Marker).getLatLng();
-        onChange({ lat, lng });
+        moveOnMap({ lat, lng });
       },
     }),
-    [onChange]
+    [moveOnMap]
   );
 
   return (
@@ -93,6 +106,20 @@ export default function LocationMap({
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
       />
+      {store && route !== undefined &&
+        (route ? (
+          <>
+            {/* A white casing under the line keeps it readable over busy streets. */}
+            <Polyline positions={route} interactive={false} pathOptions={{ color: "#ffffff", weight: 8, opacity: 0.9 }} />
+            <Polyline positions={route} interactive={false} pathOptions={{ color: "#341830", weight: 4.5, opacity: 0.9 }} />
+          </>
+        ) : (
+          <Polyline
+            positions={[store.location, position]}
+            interactive={false}
+            pathOptions={{ color: "#341830", weight: 3, opacity: 0.7, dashArray: "6 8" }}
+          />
+        ))}
       {store && (
         <>
           <Marker position={store.location} icon={storeIcon} interactive={false} zIndexOffset={-100}>
@@ -103,8 +130,8 @@ export default function LocationMap({
         </>
       )}
       <Marker position={position} draggable icon={pinIcon} eventHandlers={handlers} />
-      <ClickToMove onChange={onChange} />
-      <Recenter position={position} store={store} />
+      <ClickToMove onChange={moveOnMap} />
+      <Recenter position={position} store={store} movedOnMap={movedOnMap} />
     </MapContainer>
   );
 }

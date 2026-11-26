@@ -32,7 +32,7 @@ export function OrderSummary({
   children?: React.ReactNode;
 }) {
   const { items, totalItems, discount: rule } = useCart();
-  const { subtotal, deliveryFee, deliveryPending, discount, total, discountShortfall } = useOrderTotals(method, distanceFee);
+  const { subtotal, deliveryFee, platformFee, deliveryPending, discount, total, discountShortfall } = useOrderTotals(method, distanceFee);
   const { branch, branches } = useBranch();
   const fromFee = lowestDeliveryFee(branch, branches);
 
@@ -94,6 +94,12 @@ export function OrderSummary({
             )}
           </dd>
         </div>
+        {platformFee > 0 && (
+          <div className="flex justify-between">
+            <dt className="text-subtle">Service fee</dt>
+            <dd className="font-semibold">{formatGHS(platformFee)}</dd>
+          </div>
+        )}
         {discount > 0 && rule && (
           <div className="flex justify-between">
             <dt className="text-subtle">

@@ -2,8 +2,9 @@
 
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
-import { Crosshair, Loader2, MapPin, Search } from "lucide-react";
+import { Crosshair, Loader2, MapPin, Route, Search } from "lucide-react";
 import type { LatLng, MapStore } from "./location-map";
+import { useRoute } from "./use-route";
 
 const LocationMap = dynamic(() => import("./location-map"), {
   ssr: false,
@@ -59,6 +60,7 @@ export function AddressPicker({
 
   // Before the customer picks a spot, start at the branch: that is where deliveries come from.
   const position = location ?? store?.location ?? DEFAULT_LOCATION;
+  const { route, loading: routing } = useRoute(store?.location, location);
 
   const moveTo = useCallback(
     (pos: LatLng) => {
@@ -166,8 +168,21 @@ export function AddressPicker({
 
       {/* `isolate` keeps Leaflet's high z-index panes from covering the sticky header. */}
       <div className="relative isolate h-72 sm:h-80 overflow-hidden rounded-[22px] border border-line">
-        <LocationMap position={position} onChange={moveTo} store={store} />
+        <LocationMap position={position} onChange={moveTo} store={store} route={location ? (route?.points ?? null) : undefined} />
       </div>
+
+      {store && location && (route || routing) && (
+        <p className="flex items-center gap-2 text-sm">
+          <Route className="w-4 h-4 text-brand shrink-0" />
+          {route ? (
+            <span>
+              From Bobalicious {store.name}: <strong>{route.km} km</strong> by road, about <strong>{route.minutes} min</strong> by car.
+            </span>
+          ) : (
+            <span className="text-subtle">Finding the route…</span>
+          )}
+        </p>
+      )}
 
       <p className="text-sm text-gray-600 flex flex-wrap items-center gap-x-3 gap-y-1">
         <span>Tap the map or drag the pin to your door.</span>

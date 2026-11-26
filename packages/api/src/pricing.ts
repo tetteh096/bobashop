@@ -3,6 +3,12 @@
 // Delivery is priced by SmartSale, by distance from the branch (see branch-menu.ts).
 export const MAX_QUANTITY_PER_ITEM = 20;
 
+/**
+ * The site's own charge on every online order, in cedis, added to what the customer pays.
+ * It is the platform's, not the shop's: the sale sent to the POS leaves it out. 0 turns it off.
+ */
+export const PLATFORM_FEE = 0;
+
 export type FulfilmentMethod = "delivery" | "pickup";
 
 /** `distanceFee` is the branch's quote for the customer's pin, or null before a pin is set. */
@@ -37,6 +43,8 @@ export interface DiscountRule {
 export interface OrderTotals {
   subtotal: number;
   deliveryFee: number;
+  /** PLATFORM_FEE, charged on every order. */
+  platformFee: number;
   /** Delivery chosen but no location yet, so the fee isn't known. */
   deliveryPending: boolean;
   discount: number;
@@ -73,9 +81,10 @@ export function computeTotals(
   return {
     subtotal: roundMoney(subtotal),
     deliveryFee,
+    platformFee: PLATFORM_FEE,
     deliveryPending,
     discount,
-    total: roundMoney(subtotal + deliveryFee - discount),
+    total: roundMoney(subtotal + deliveryFee + PLATFORM_FEE - discount),
     discountShortfall: roundMoney(shortfall),
   };
 }
