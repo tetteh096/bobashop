@@ -6,7 +6,8 @@
     "./*": "./src/*.ts"
   },
   "scripts": {
-    "check-types": "tsc --noEmit"
+    "check-types": "tsc --noEmit",
+    "seed:images": "tsx --env-file=../../apps/web/.env scripts/seed-item-images.ts"
   },
   "dependencies": {
     "@bobashop/auth": "workspace:*",

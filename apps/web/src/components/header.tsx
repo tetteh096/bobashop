@@ -13,7 +13,7 @@ import { useCart } from "./shop/cart-context";
 import { BranchButton } from "./branch";
 
 const NAV_ITEMS = [
-  { label: "Menu", href: "/menu" },
+  { label: "Drinks", href: "/menu" },
   { label: "Food", href: "/menu?tab=food" },
   { label: "Branches", href: "/#branches" },
   { label: "Contact", href: "/contact" },

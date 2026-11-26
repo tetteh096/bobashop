@@ -2,6 +2,7 @@ import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 
 import { publicProcedure, router } from "../index";
+import { withFallbackImages } from "../item-images";
 import { defaultBranch, loadBranches, loadBranchMenu } from "../smartsale/storefront";
 
 function unavailable(error: unknown): never {
@@ -31,7 +32,8 @@ export const menuRouter = router({
     return {
       branchId: found.branch.id,
       categories: found.menu.categories,
-      products: found.menu.products,
+      // SmartSale's own picture first; our saved photo only for items it has none for.
+      products: await withFallbackImages(ctx.db, found.menu.products),
       tracksStock: found.menu.tracksStock,
     };
   }),
