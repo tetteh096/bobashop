@@ -3,7 +3,7 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { Crosshair, Loader2, MapPin, Search } from "lucide-react";
-import type { LatLng } from "./location-map";
+import type { LatLng, MapStore } from "./location-map";
 
 const LocationMap = dynamic(() => import("./location-map"), {
   ssr: false,
@@ -41,8 +41,11 @@ export function AddressPicker({
   location,
   onLocationChange,
   onAddressFound,
+  store,
 }: {
   location: LatLng | null;
+  /** The branch delivering the order, pinned on the map. */
+  store?: MapStore;
   onLocationChange: (pos: LatLng) => void;
   /** Called with a suggested street address whenever the pin moves. */
   onAddressFound: (address: string) => void;
@@ -54,7 +57,8 @@ export function AddressPicker({
   const [searching, setSearching] = useState(false);
   const lookupId = useRef(0);
 
-  const position = location ?? DEFAULT_LOCATION;
+  // Before the customer picks a spot, start at the branch: that is where deliveries come from.
+  const position = location ?? store?.location ?? DEFAULT_LOCATION;
 
   const moveTo = useCallback(
     (pos: LatLng) => {
@@ -162,7 +166,7 @@ export function AddressPicker({
 
       {/* `isolate` keeps Leaflet's high z-index panes from covering the sticky header. */}
       <div className="relative isolate h-72 sm:h-80 overflow-hidden rounded-[22px] border border-line">
-        <LocationMap position={position} onChange={moveTo} />
+        <LocationMap position={position} onChange={moveTo} store={store} />
       </div>
 
       <p className="text-sm text-gray-600 flex flex-wrap items-center gap-x-3 gap-y-1">

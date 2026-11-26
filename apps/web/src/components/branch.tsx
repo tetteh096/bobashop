@@ -224,7 +224,7 @@ function BranchPicker({
                                 {!b.orderingOpen && <span className="rounded-full bg-tomato-soft text-tomato-dark px-2.5 py-1 text-xs font-semibold">Not taking orders right now</span>}
                                 <span className="rounded-full bg-tint px-2.5 py-1 text-xs font-medium">Order online</span>
                                 <span className="rounded-full bg-tint px-2.5 py-1 text-xs font-medium">
-                                  {b.delivery.enabled ? `Delivery up to ${b.delivery.maxKm} km` : "Pickup only"}
+                                  {b.delivery.enabled ? "Delivery" : "Pickup only"}
                                 </span>
                               </>
                             )}

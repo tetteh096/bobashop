@@ -123,7 +123,7 @@ const fulfilmentSchema = z.discriminatedUnion("method", [
   }),
 ]);
 
-function ordersCollection(db: Database | null) {
+export function ordersCollection(db: Database | null) {
   if (!db) {
     throw new TRPCError({
       code: "PRECONDITION_FAILED",
@@ -187,7 +187,7 @@ export async function confirmOrderPayment(
 }
 
 /** Give up on the POS after this many tries; the shop can still see the order in the database. */
-const MAX_POS_ATTEMPTS = 5;
+export const MAX_POS_ATTEMPTS = 5;
 /** A send that hasn't finished in this long (the server died mid-way) may be tried again. */
 const STUCK_SEND_MS = 2 * 60_000;
 
@@ -196,7 +196,7 @@ const STUCK_SEND_MS = 2 * 60_000;
  * browser's verify and Paystack's webhook arriving together can't both post it. Failures are
  * recorded and retried the next time payment is confirmed; they never fail the customer's order.
  */
-async function sendToPos(orders: ReturnType<typeof ordersCollection>, config: SmartSaleConfig, reference: string) {
+export async function sendToPos(orders: ReturnType<typeof ordersCollection>, config: SmartSaleConfig, reference: string) {
   if (!config.submitOrders) return;
   const order = await orders.findOneAndUpdate(
     {

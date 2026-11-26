@@ -1,12 +1,11 @@
 "use client";
 
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useMutation } from "@tanstack/react-query";
 import { AlertTriangle, ArrowLeft, ArrowRight, Check, Clock, Loader2, Lock, MapPin, Navigation, Pencil, Route, ShoppingBag, Store, Truck } from "lucide-react";
 import { toast } from "sonner";
 import { SHOP } from "@bobashop/api/data/shop";
-import { FREE_DELIVERY_THRESHOLD } from "@bobashop/api/pricing";
 import { branchesDeliveringTo, quoteDelivery } from "@bobashop/api/branch-menu";
 import type { CustomerProfile } from "@bobashop/api/customers";
 import { useBranch } from "@/components/branch";
@@ -65,6 +64,14 @@ export default function CheckoutPage() {
   const isPickup = method === "pickup";
   // Priced from the chosen branch to the pin, exactly as the server will price it.
   const quote = branch && location && !isPickup ? quoteDelivery(branch, location, SHOP.pickupMinutes) : null;
+  // The map marks the branch the order is delivered from.
+  const deliveryArea = useMemo(
+    () =>
+      branch?.location
+        ? { name: branch.name, location: branch.location }
+        : undefined,
+    [branch]
+  );
   const distanceFee = quote?.ok ? quote.fee : null;
   const { total, discount: discountAmount } = useOrderTotals(method, distanceFee);
   const createOrder = useMutation(trpc.orders.create.mutationOptions());
@@ -316,7 +323,12 @@ export default function CheckoutPage() {
                 <div className="space-y-5">
                   <div>
                     <p className="font-semibold mb-3">Where should we deliver?</p>
-                    <AddressPicker location={location} onLocationChange={setLocation} onAddressFound={handleAddressFound} />
+                    <AddressPicker
+                      location={location}
+                      onLocationChange={setLocation}
+                      onAddressFound={handleAddressFound}
+                      store={deliveryArea}
+                    />
                     {errors.location && !(quote && !quote.ok) && <p className="mt-2 text-sm text-sale">{errors.location}</p>}
                   </div>
 
@@ -330,8 +342,7 @@ export default function CheckoutPage() {
                         From Bobalicious {branch.name}:{" "}
                         {branch.delivery.byDistance
                           ? `${formatGHS(branch.delivery.baseFee)} + ${formatGHS(branch.delivery.perKm)} per km.`
-                          : `a flat ${formatGHS(branch.delivery.baseFee)}.`}{" "}
-                        Free over {formatGHS(FREE_DELIVERY_THRESHOLD)}.
+                          : `a flat ${formatGHS(branch.delivery.baseFee)}.`}
                       </p>
                     </div>
                   )}

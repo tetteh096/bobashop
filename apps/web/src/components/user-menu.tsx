@@ -62,6 +62,11 @@ export default function UserMenu() {
           <DropdownMenuItem className="text-xs text-gray-600">
             {session.user.email}
           </DropdownMenuItem>
+          {(session.user.role ?? "").split(",").includes("admin") && (
+            <DropdownMenuItem onClick={() => router.push("/admin")} className="font-semibold">
+              Admin: orders &amp; staff
+            </DropdownMenuItem>
+          )}
           <DropdownMenuItem
             variant="destructive"
             onClick={() => {

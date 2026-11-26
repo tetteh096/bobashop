@@ -1,5 +1,5 @@
 import type { Category, Choice, MenuKind, Product } from "../data/catalog";
-import { DEFAULT_MAX_DELIVERY_KM, DELIVERY_RANGE_KM, phoneFormats, type Branch } from "../data/shop";
+import { phoneFormats, type Branch } from "../data/shop";
 import { fetchInventory, fetchRegistrations } from "./client";
 import {
   deliveryFrom,
@@ -74,7 +74,6 @@ export function toBranch(storeId: string, reg: RawRegistration, items: PosItem[]
         baseFee: delivery.baseFee,
         perKm: delivery.perKm,
         byDistance: delivery.byDistance,
-        maxKm: DELIVERY_RANGE_KM[id] ?? DEFAULT_MAX_DELIVERY_KM,
       },
     },
   };

@@ -9,8 +9,6 @@ export interface LatLng {
   lng: number;
 }
 
-/** Roads in Accra are rarely straight; road distance is roughly this much longer. */
-const ROAD_FACTOR = 1.3;
 /** Average rider speed across town, for the arrival estimate. */
 const MINUTES_PER_KM = 4;
 
@@ -25,26 +23,19 @@ export function straightLineKm(a: LatLng, b: LatLng) {
 
 export type DeliveryQuote =
   | { ok: true; km: number; fee: number; etaMinutes: number }
-  | { ok: false; reason: "no_delivery" | "too_far"; km?: number; message: string };
+  | { ok: false; reason: "no_delivery"; message: string };
 
 /**
- * SmartSale's delivery price: the DELIVERY item's price plus its "cost per km" for each road
- * kilometre (fixed at the item price when it has no per-km option). Outside the branch's
- * range, or at a pickup-only branch, it says why instead.
+ * SmartSale's delivery price, and nothing else: the DELIVERY item's price plus its "cost per km"
+ * for each straight-line kilometre from the branch (fixed at the item price when it has no
+ * per-km option). SmartSale sets no distance limit, so neither does the site. At a
+ * pickup-only branch it says why instead.
  */
 export function quoteDelivery(branch: Branch, to: LatLng, prepMinutes = 15): DeliveryQuote {
   if (!branch.delivery.enabled || !branch.location) {
     return { ok: false, reason: "no_delivery", message: `${branch.name} is pickup only right now.` };
   }
-  const km = Math.round(straightLineKm(branch.location, to) * ROAD_FACTOR * 10) / 10;
-  if (km > branch.delivery.maxKm) {
-    return {
-      ok: false,
-      reason: "too_far",
-      km,
-      message: `That's about ${km} km from ${branch.name}, and it delivers up to ${branch.delivery.maxKm} km.`,
-    };
-  }
+  const km = Math.round(straightLineKm(branch.location, to) * 10) / 10;
   const { baseFee, perKm, byDistance } = branch.delivery;
   const fee = Math.round((baseFee + (byDistance ? perKm * km : 0)) * 100) / 100;
   return { ok: true, km, fee, etaMinutes: Math.round(prepMinutes + km * MINUTES_PER_KM) };

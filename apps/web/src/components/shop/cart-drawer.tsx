@@ -2,7 +2,7 @@
 
 import React from "react";
 import Link from "next/link";
-import { X, Trash2, Plus, Minus, ShoppingBag, ArrowRight, Truck } from "lucide-react";
+import { X, Trash2, Plus, Minus, ShoppingBag, ArrowRight } from "lucide-react";
 import { MAX_QUANTITY_PER_ITEM } from "@bobashop/api/pricing";
 import { describeOptions } from "@bobashop/api/data/catalog";
 import { useCart } from "./cart-context";
@@ -18,13 +18,10 @@ export function CartDrawer() {
     removeFromCart,
     updateQuantity,
     subtotal,
-    freeShippingThreshold,
-    freeShippingRemaining,
   } = useCart();
 
   if (!isCartOpen) return null;
 
-  const progress = Math.min(100, Math.round((subtotal / freeShippingThreshold) * 100));
   const close = () => setIsCartOpen(false);
 
   return (
@@ -43,23 +40,6 @@ export function CartDrawer() {
             </button>
           </div>
 
-          {items.length > 0 && (
-            <div className="px-5 py-4 bg-card border-b border-line">
-              <p className="text-sm flex items-center gap-2">
-                <Truck className="w-4 h-4 text-brand" />
-                {freeShippingRemaining === 0 ? (
-                  <span className="font-semibold">You&apos;ve got free delivery</span>
-                ) : (
-                  <span>
-                    Add <strong>{formatGHS(freeShippingRemaining)}</strong> for free delivery
-                  </span>
-                )}
-              </p>
-              <div className="mt-2 h-1.5 rounded-full bg-tint overflow-hidden">
-                <div className="h-full bg-gold rounded-full transition-all" style={{ width: `${progress}%` }} />
-              </div>
-            </div>
-          )}
 
           <div className="flex-1 overflow-y-auto p-4 space-y-3">
             {items.length === 0 ? (

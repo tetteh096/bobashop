@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { FREE_DELIVERY_THRESHOLD, MAX_QUANTITY_PER_ITEM, type DiscountRule, type FulfilmentMethod } from "@bobashop/api/pricing";
+import { MAX_QUANTITY_PER_ITEM, type DiscountRule, type FulfilmentMethod } from "@bobashop/api/pricing";
 import { useTRPCClient } from "@/utils/trpc";
 import { useBranch } from "../branch";
 import { useMenu } from "./menu-context";
@@ -40,8 +40,6 @@ interface CartContextType {
   setIsCartOpen: (open: boolean) => void;
   totalItems: number;
   subtotal: number;
-  freeShippingThreshold: number;
-  freeShippingRemaining: number;
   wishlist: Product[];
   isInWishlist: (productId: string) => boolean;
   toggleWishlist: (product: Product) => void;
@@ -249,7 +247,6 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
   const totalItems = items.reduce((sum, item) => sum + item.quantity, 0);
   const subtotal = items.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0);
-  const freeShippingRemaining = Math.max(0, FREE_DELIVERY_THRESHOLD - subtotal);
 
   return (
     <CartContext.Provider
@@ -263,8 +260,6 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         setIsCartOpen,
         totalItems,
         subtotal,
-        freeShippingThreshold: FREE_DELIVERY_THRESHOLD,
-        freeShippingRemaining,
         wishlist,
         isInWishlist,
         toggleWishlist,

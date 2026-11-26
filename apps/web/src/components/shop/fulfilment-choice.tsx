@@ -2,7 +2,7 @@
 
 import React from "react";
 import { Check, Store, Truck } from "lucide-react";
-import { FREE_DELIVERY_THRESHOLD, type FulfilmentMethod } from "@bobashop/api/pricing";
+import { type FulfilmentMethod } from "@bobashop/api/pricing";
 import { SHOP } from "@bobashop/api/data/shop";
 import { lowestDeliveryFee } from "@bobashop/api/branch-menu";
 import { useBranch } from "../branch";
@@ -31,7 +31,9 @@ export function FulfilmentChoice({
       short: "Delivery",
       text: deliveryOff
         ? `${branch ? branch.name : "Online delivery"} is pickup only for now.`
-        : `${pricing}${from !== null ? `, from ${formatGHS(from)}` : ""}${branch ? ` (up to ${branch.delivery.maxKm} km)` : ""}. Free over ${formatGHS(FREE_DELIVERY_THRESHOLD)}.`,
+        : branch && branch.delivery.byDistance && branch.delivery.perKm > 0
+          ? `${formatGHS(branch.delivery.baseFee)} plus ${formatGHS(branch.delivery.perKm)} per km.`
+          : `${pricing}${from !== null ? `, from ${formatGHS(from)}` : ""}.`,
       disabled: deliveryOff,
     },
     {

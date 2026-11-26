@@ -1,3 +1,4 @@
+import { hasAdminRole } from "@bobashop/auth";
 import { initTRPC, TRPCError } from "@trpc/server";
 import { ZodError } from "zod";
 
@@ -31,4 +32,12 @@ export const protectedProcedure = t.procedure.use(({ ctx, next }) => {
       session: ctx.session,
     },
   });
+});
+
+/** Shop staff only: the admin role is set by Better Auth's admin plugin (see packages/auth). */
+export const adminProcedure = protectedProcedure.use(({ ctx, next }) => {
+  if (!hasAdminRole(ctx.session.user.role)) {
+    throw new TRPCError({ code: "FORBIDDEN", message: "Only shop admins can do that." });
+  }
+  return next({ ctx });
 });

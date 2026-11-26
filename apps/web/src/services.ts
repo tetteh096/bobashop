@@ -8,5 +8,8 @@ import { accountsEnabled } from "./features";
 export const db = accountsEnabled ? await createDb({ DATABASE_URL: ENV.DATABASE_URL! }) : null;
 export const auth =
   accountsEnabled && db
-    ? createAuth({ BETTER_AUTH_URL: ENV.BETTER_AUTH_URL, BETTER_AUTH_SECRET: ENV.BETTER_AUTH_SECRET! }, db)
+    ? createAuth(
+        { BETTER_AUTH_URL: ENV.BETTER_AUTH_URL, BETTER_AUTH_SECRET: ENV.BETTER_AUTH_SECRET!, ADMIN_EMAILS: ENV.ADMIN_EMAILS },
+        db
+      )
     : null;

@@ -10,11 +10,9 @@ export interface BranchDelivery {
   perKm: number;
   /** True when the fee depends on distance, so the customer must drop a pin. */
   byDistance: boolean;
-  /** Furthest the branch delivers, in road kilometres. A site setting: SmartSale has no field for it. */
-  maxKm: number;
 }
 
-/** A store registered in SmartSale. Every field except `delivery.maxKm` comes from there. */
+/** A store registered in SmartSale. Every field comes from there. */
 export interface Branch {
   /** Slug of the SmartSale store ID: `sserp_bobalicious_adenta` → "adenta". */
   id: string;
@@ -50,11 +48,6 @@ export function phoneFormats(raw: string) {
   };
 }
 
-/** How far each branch delivers, by branch id. SmartSale prices delivery but has no range. */
-export const DELIVERY_RANGE_KM: Record<string, number> = {
-  adenta: 12,
-};
-export const DEFAULT_MAX_DELIVERY_KM = 12;
 
 export const SHOP = {
   name: "Bobalicious",

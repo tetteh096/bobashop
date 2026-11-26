@@ -1,15 +1,14 @@
 // Shared by the storefront (for display) and the orders router (for charging),
 // so the totals a customer sees are the totals Paystack is asked to collect.
-// Delivery is priced by distance from the branch (see branch-menu.ts); orders over this are free.
-export const FREE_DELIVERY_THRESHOLD = 150;
+// Delivery is priced by SmartSale, by distance from the branch (see branch-menu.ts).
 export const MAX_QUANTITY_PER_ITEM = 20;
 
 export type FulfilmentMethod = "delivery" | "pickup";
 
 /** `distanceFee` is the branch's quote for the customer's pin, or null before a pin is set. */
-export function deliveryFeeFor(method: FulfilmentMethod, subtotal: number, distanceFee: number | null) {
+export function deliveryFeeFor(method: FulfilmentMethod, distanceFee: number | null) {
   if (method === "pickup") return 0;
-  return subtotal >= FREE_DELIVERY_THRESHOLD ? 0 : (distanceFee ?? 0);
+  return distanceFee ?? 0;
 }
 
 export function roundMoney(amount: number) {
@@ -53,8 +52,8 @@ export function computeTotals(
   rule?: DiscountRule | null,
   distanceFee: number | null = null
 ): OrderTotals {
-  const deliveryFee = deliveryFeeFor(method, subtotal, distanceFee);
-  const deliveryPending = method === "delivery" && distanceFee === null && subtotal < FREE_DELIVERY_THRESHOLD;
+  const deliveryFee = deliveryFeeFor(method, distanceFee);
+  const deliveryPending = method === "delivery" && distanceFee === null;
   let discount = 0;
   let shortfall = 0;
 

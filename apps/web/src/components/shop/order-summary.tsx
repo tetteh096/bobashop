@@ -31,7 +31,7 @@ export function OrderSummary({
   before?: React.ReactNode;
   children?: React.ReactNode;
 }) {
-  const { items, totalItems, freeShippingRemaining, discount: rule } = useCart();
+  const { items, totalItems, discount: rule } = useCart();
   const { subtotal, deliveryFee, deliveryPending, discount, total, discountShortfall } = useOrderTotals(method, distanceFee);
   const { branch, branches } = useBranch();
   const fromFee = lowestDeliveryFee(branch, branches);
@@ -103,11 +103,6 @@ export function OrderSummary({
           </div>
         )}
         {codeNote && <p className="text-sm text-ink/80 bg-gold-soft px-3 py-2">{codeNote}</p>}
-        {method === "delivery" && freeShippingRemaining > 0 && rule?.kind !== "free_delivery" && (
-          <p className="text-sm text-brand bg-tint px-3 py-2">
-            Add {formatGHS(freeShippingRemaining)} more for free delivery.
-          </p>
-        )}
         <div className="pt-4 border-t border-line flex justify-between items-baseline">
           <dt className="font-semibold">Total</dt>
           <dd className="text-right">

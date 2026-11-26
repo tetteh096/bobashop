@@ -1,3 +1,4 @@
+import type { Route } from "next";
 import { Button } from "@bobashop/ui/components/button";
 import { Input } from "@bobashop/ui/components/input";
 import { Label } from "@bobashop/ui/components/label";
@@ -6,7 +7,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import z from "zod";
 
-import { authClient } from "@/lib/auth-client";
+import { afterSignInPath, authClient } from "@/lib/auth-client";
 
 import Loader from "./loader";
 
@@ -27,7 +28,7 @@ export default function SignInForm({ onSwitchToSignUp }: { onSwitchToSignUp: () 
         },
         {
           onSuccess: () => {
-            router.push("/dashboard");
+            router.push(afterSignInPath() as Route);
             toast.success("Sign in successful");
           },
           onError: (error) => {
