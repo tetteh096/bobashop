@@ -181,7 +181,7 @@ function MenuContent({ urlKind }: { urlKind: MenuKind }) {
     <div className="pb-24">
       {/* Banner */}
       <section className="bg-paper">
-        <div className="max-w-[1280px] mx-auto px-4 sm:px-8 pt-5">
+        <div className="max-w-[1600px] mx-auto px-4 sm:px-8 pt-5">
           <Breadcrumb items={[{ label: "Home", href: "/" }, { label: kind === "food" ? "Food" : "Menu" }]} />
           <div className="mt-5 relative overflow-hidden rounded-[32px] bg-brand-deep text-cream">
             <div className="absolute inset-0">
@@ -250,7 +250,7 @@ function MenuContent({ urlKind }: { urlKind: MenuKind }) {
       </section>
 
       <div ref={resultsRef} className="scroll-mt-[68px] lg:scroll-mt-20" />
-      <div className="max-w-[1280px] mx-auto px-4 sm:px-8 mt-8">
+      <div className="max-w-[1600px] mx-auto px-4 sm:px-8 mt-8">
         {branch && !branch.orderingOpen && (
           <div role="status" className="mb-6 rounded-[24px] bg-tomato-soft text-tomato-dark p-5 sm:p-6">
             <p className="text-[15px]">
@@ -369,7 +369,7 @@ function MenuContent({ urlKind }: { urlKind: MenuKind }) {
                       )}
                     </p>
                   </div>
-                  <div className="mt-5 grid grid-cols-2 md:grid-cols-3 gap-3 sm:gap-5">
+                  <div className="mt-5 grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-5">
                     {section.items.map((product) => (
                       <ProductCard key={product.id} product={product} />
                     ))}
@@ -377,7 +377,7 @@ function MenuContent({ urlKind }: { urlKind: MenuKind }) {
                 </section>
               ))
             ) : (
-              <div className="mt-6 grid grid-cols-2 md:grid-cols-3 gap-3 sm:gap-5">
+              <div className="mt-6 grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-5">
                 {filtered.map((product) => (
                   <ProductCard key={product.id} product={product} />
                 ))}
@@ -591,7 +591,7 @@ function FoodBanner({ onShowFood }: { onShowFood: () => void }) {
 
 function MenuSkeleton() {
   return (
-    <div className="mt-6 grid grid-cols-2 md:grid-cols-3 gap-3 sm:gap-5" aria-busy="true" aria-label="Loading the menu">
+    <div className="mt-6 grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-5" aria-busy="true" aria-label="Loading the menu">
       {Array.from({ length: 8 }, (_, i) => (
         <div key={i} className="rounded-[26px] border border-line p-2.5">
           <div className="aspect-[4/5] rounded-[20px] bg-tint animate-pulse" />
