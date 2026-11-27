@@ -669,7 +669,7 @@ function OrderDrawer({
               </ul>
               <dl className="mt-3 space-y-1.5">
                 <Row label="Subtotal" money>{formatGHS(o.subtotal)}</Row>
-                {o.fulfilment.method === "delivery" && <Row label="Delivery" money>{formatGHS(o.deliveryFee)}</Row>}
+                {o.fulfilment.method === "delivery" && <Row label="Delivery fee" money>{formatGHS(o.deliveryFee)}</Row>}
                 <Row label="Platform fee" money>{formatGHS(o.platformFee ?? 0)}</Row>
                 {o.discount && (
                   <Row label={`Discount (${o.discount.code})`} money>
@@ -777,7 +777,7 @@ function downloadCsv(rows: AdminOrder[], from: string, to: string) {
     "Address",
     "Items",
     "Subtotal",
-    "Delivery",
+    "Delivery fee",
     "Platform fee",
     "Discount",
     "Total",

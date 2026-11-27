@@ -43,8 +43,8 @@ export function OrderSummary({
         ? `Add ${formatGHS(discountShortfall)} more to use ${rule.code}.`
         : rule.kind === "free_delivery"
           ? method === "pickup"
-            ? `${rule.code} is for delivery; pickup is already free.`
-            : "Delivery is already free on this order."
+            ? `${rule.code} is for delivery; shop pickup has no charge.`
+            : "There is no delivery charge on this order."
           : null
       : null;
 
@@ -83,12 +83,12 @@ export function OrderSummary({
           <dd className="font-semibold">{formatGHS(subtotal)}</dd>
         </div>
         <div className="flex justify-between">
-          <dt className="text-subtle">{method === "pickup" ? "Shop pickup" : "Delivery"}</dt>
+          <dt className="text-subtle">{method === "pickup" ? "Shop pickup" : "Delivery fee"}</dt>
           <dd className={`font-semibold text-right ${deliveryFee === 0 && !deliveryPending ? "text-[#2C6853]" : ""}`}>
             {deliveryPending ? (
               <span className="text-sm font-medium text-subtle">{fromFee !== null ? `From ${formatGHS(fromFee)}, by distance` : "Set at checkout"}</span>
             ) : deliveryFee === 0 ? (
-              "Free"
+              "No charge"
             ) : (
               formatGHS(deliveryFee)
             )}

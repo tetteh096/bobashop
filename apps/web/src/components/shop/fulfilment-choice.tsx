@@ -41,7 +41,7 @@ export function FulfilmentChoice({
       icon: Store,
       title: branch ? `Pick up at ${branch.name}` : "Pick up at your branch",
       short: "Pickup",
-      text: `Free. Made fresh and ready in about ${SHOP.pickupMinutes} minutes.`,
+      text: `No charge. Made fresh and ready in about ${SHOP.pickupMinutes} minutes.`,
     },
   ];
 

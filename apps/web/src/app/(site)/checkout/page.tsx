@@ -336,7 +336,7 @@ export default function CheckoutPage() {
                   {quote?.ok && (
                     <div className="rounded-[22px] bg-gold-soft border border-gold/50 p-5 grid grid-cols-3 gap-3">
                       <QuoteStat icon={<Route className="w-4 h-4" />} label="Charged distance" value={`${quote.km} km`} />
-                      <QuoteStat icon={<Truck className="w-4 h-4" />} label="Delivery" value={formatGHS(quote.fee)} />
+                      <QuoteStat icon={<Truck className="w-4 h-4" />} label="Delivery fee" value={formatGHS(quote.fee)} />
                       <QuoteStat icon={<Clock className="w-4 h-4" />} label="Arrives in" value={`~${quote.etaMinutes} min`} />
                       <p className="col-span-3 text-sm text-ink/70">
                         From Bobalicious {branch.name}:{" "}

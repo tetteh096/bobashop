@@ -107,7 +107,7 @@ export function CartDrawer() {
                 <span className="text-subtle">Subtotal</span>
                 <span className="font-display text-2xl font-normal">{formatGHS(subtotal)}</span>
               </div>
-              <p className="text-xs text-subtle">Delivery is worked out at checkout. Pickup from the shop is free.</p>
+              <p className="text-xs text-subtle">Delivery is worked out at checkout. Shop pickup has no charge.</p>
               <div className="grid grid-cols-2 gap-3">
                 <Link
                   href={"/cart" as "/"}
