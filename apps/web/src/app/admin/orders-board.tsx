@@ -17,6 +17,7 @@ import {
   Search,
   Send,
   Store,
+  Trash2,
   Truck,
   X,
 } from "lucide-react";
@@ -55,16 +56,22 @@ function errorMessage(error: unknown) {
   return error instanceof Error ? error.message : "Something went wrong.";
 }
 
-export function OrdersBoard() {
+/** "YYYY-MM-DD" in Accra (UTC all year), `days` from today. */
+function isoDay(days = 0) {
+  return new Date(Date.now() + days * 86_400_000).toISOString().slice(0, 10);
+}
+
+export function OrdersBoard({ initialSearch = "" }: { initialSearch?: string }) {
   const trpc = useTRPC();
   const queryClient = useQueryClient();
 
   const [status, setStatus] = useState<AdminStatusFilter>("all");
-  const [searchText, setSearchText] = useState("");
+  const [searchText, setSearchText] = useState(initialSearch);
   const [branchId, setBranchId] = useState("");
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
   const [selected, setSelected] = useState<string | null>(null);
   const [exporting, setExporting] = useState(false);
 
@@ -78,16 +85,36 @@ export function OrdersBoard() {
   };
 
   // A filter change starts again from page 1.
-  useEffect(() => setPage(1), [status, search, branchId, from, to]);
+  useEffect(() => setPage(1), [status, search, branchId, from, to, pageSize]);
 
   const list = useQuery({
-    ...trpc.admin.orders.list.queryOptions({ ...filters, page }),
+    ...trpc.admin.orders.list.queryOptions({ ...filters, page, pageSize }),
     placeholderData: keepPreviousData,
     // New orders show up without reloading the page.
     refetchInterval: 30_000,
   });
   const data = list.data;
   const filtered = Boolean(search || branchId || from || to);
+
+  // After deleting the last order on the last page, step back to a page that exists.
+  useEffect(() => {
+    if (data && page > data.pageCount) setPage(data.pageCount);
+  }, [data, page]);
+
+  const remove = useMutation(
+    trpc.admin.orders.delete.mutationOptions({
+      onSuccess: ({ reference }) => {
+        toast.success(`Deleted ${reference}.`);
+        setSelected((current) => (current === reference ? null : current));
+        queryClient.removeQueries({ queryKey: trpc.admin.orders.get.queryKey({ reference }) });
+        queryClient.invalidateQueries({ queryKey: trpc.admin.orders.list.pathKey() });
+      },
+      onError: (error) => toast.error(error.message),
+    })
+  );
+  const deleteOrder = (order: AdminOrder) => {
+    if (confirmDelete(order)) remove.mutate({ reference: order.reference });
+  };
 
   const clearFilters = () => {
     setSearchText("");
@@ -198,6 +225,29 @@ export function OrdersBoard() {
             </option>
           ))}
         </select>
+        <div className="flex rounded-full border border-line bg-card p-0.5 text-sm" role="group" aria-label="Quick dates">
+          {[
+            { label: "Today", from: isoDay(), to: isoDay() },
+            { label: "Yesterday", from: isoDay(-1), to: isoDay(-1) },
+            { label: "7 days", from: isoDay(-6), to: isoDay() },
+          ].map((preset) => {
+            const on = from === preset.from && to === preset.to;
+            return (
+              <button
+                key={preset.label}
+                type="button"
+                aria-pressed={on}
+                onClick={() => {
+                  setFrom(on ? "" : preset.from);
+                  setTo(on ? "" : preset.to);
+                }}
+                className={`rounded-full px-3 py-1.5 font-semibold cursor-pointer ${on ? "bg-brand-deep text-cream" : "hover:bg-tint"}`}
+              >
+                {preset.label}
+              </button>
+            );
+          })}
+        </div>
         <label className="flex items-center gap-2 text-sm">
           <span className="text-subtle">From</span>
           <input type="date" value={from} max={to || undefined} onChange={(e) => setFrom(e.target.value)} className="rounded-full bg-card border border-line px-3 py-2" />
@@ -239,6 +289,9 @@ export function OrdersBoard() {
                 <th className="px-4 py-3 font-semibold text-right">Total</th>
                 <th className="px-4 py-3 font-semibold">Payment</th>
                 <th className="px-4 py-3 font-semibold">POS</th>
+                <th className="px-2 py-3">
+                  <span className="sr-only">Delete</span>
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-line">
@@ -271,6 +324,21 @@ export function OrdersBoard() {
                   <td className="px-4 py-3">
                     <PosBadge order={order} />
                   </td>
+                  <td className="px-2 py-3">
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        deleteOrder(order);
+                      }}
+                      disabled={remove.isPending && remove.variables?.reference === order.reference}
+                      aria-label={`Delete order ${order.reference}`}
+                      title="Delete order"
+                      className="p-2 rounded-full text-subtle hover:bg-tomato-soft hover:text-tomato-dark disabled:opacity-40 cursor-pointer"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -278,34 +346,127 @@ export function OrdersBoard() {
         </div>
       )}
 
-      {data && data.pageCount > 1 && (
-        <div className="flex items-center justify-between text-sm">
-          <span className="text-subtle">
-            Page {data.page} of {data.pageCount} · {data.total} orders
-          </span>
-          <div className="flex gap-2">
-            <button
-              type="button"
-              disabled={page <= 1}
-              onClick={() => setPage((p) => p - 1)}
-              className="inline-flex items-center gap-1 rounded-full border border-line bg-card px-3 py-2 disabled:opacity-40 cursor-pointer"
-            >
-              <ChevronLeft className="w-4 h-4" /> Newer
-            </button>
-            <button
-              type="button"
-              disabled={page >= data.pageCount}
-              onClick={() => setPage((p) => p + 1)}
-              className="inline-flex items-center gap-1 rounded-full border border-line bg-card px-3 py-2 disabled:opacity-40 cursor-pointer"
-            >
-              Older <ChevronRight className="w-4 h-4" />
-            </button>
-          </div>
-        </div>
+      {data && data.total > 0 && (
+        <Pagination
+          page={data.page}
+          pageCount={data.pageCount}
+          pageSize={pageSize}
+          total={data.total}
+          onPage={setPage}
+          onPageSize={setPageSize}
+        />
       )}
 
-      {selected && <OrderDrawer reference={selected} posSending={data?.posSending ?? false} onClose={() => setSelected(null)} />}
+      {selected && (
+        <OrderDrawer
+          reference={selected}
+          posSending={data?.posSending ?? false}
+          onClose={() => setSelected(null)}
+          onDelete={deleteOrder}
+          deleting={remove.isPending}
+        />
+      )}
     </div>
+  );
+}
+
+const PAGE_SIZES = [10, 25, 50, 100];
+
+/** Page numbers to show: the first, the last, and the ones around the current page. */
+function pageNumbers(page: number, pageCount: number) {
+  const wanted = new Set([1, pageCount, page - 1, page, page + 1]);
+  const pages = [...wanted].filter((p) => p >= 1 && p <= pageCount).sort((a, b) => a - b);
+  return pages.flatMap((p, i) => (i > 0 && p - pages[i - 1]! > 1 ? (["gap", p] as const) : ([p] as const)));
+}
+
+function Pagination({
+  page,
+  pageCount,
+  pageSize,
+  total,
+  onPage,
+  onPageSize,
+}: {
+  page: number;
+  pageCount: number;
+  pageSize: number;
+  total: number;
+  onPage: (page: number) => void;
+  onPageSize: (size: number) => void;
+}) {
+  const first = (page - 1) * pageSize + 1;
+  const last = Math.min(total, page * pageSize);
+  const pill = "min-w-9 h-9 inline-flex items-center justify-center rounded-full border text-sm font-semibold";
+  return (
+    <nav className="flex flex-wrap items-center justify-between gap-3 text-sm" aria-label="Pages">
+      <div className="flex items-center gap-3 text-subtle">
+        <span>
+          Showing <strong className="text-ink">{first}–{last}</strong> of <strong className="text-ink">{total}</strong>
+        </span>
+        <label className="flex items-center gap-2">
+          Rows
+          <select
+            value={pageSize}
+            onChange={(e) => onPageSize(Number(e.target.value))}
+            className="rounded-full bg-card border border-line px-3 py-1.5 text-ink"
+          >
+            {PAGE_SIZES.map((n) => (
+              <option key={n} value={n}>
+                {n}
+              </option>
+            ))}
+          </select>
+        </label>
+      </div>
+      <div className="flex items-center gap-1.5">
+        <button
+          type="button"
+          disabled={page <= 1}
+          onClick={() => onPage(page - 1)}
+          aria-label="Previous page"
+          className={`${pill} border-line bg-card px-2 disabled:opacity-40 cursor-pointer`}
+        >
+          <ChevronLeft className="w-4 h-4" />
+        </button>
+        {pageNumbers(page, pageCount).map((p, i) =>
+          p === "gap" ? (
+            <span key={`gap-${i}`} className="px-1 text-subtle">
+              …
+            </span>
+          ) : (
+            <button
+              key={p}
+              type="button"
+              onClick={() => onPage(p)}
+              aria-current={p === page ? "page" : undefined}
+              className={`${pill} px-3 cursor-pointer ${p === page ? "border-brand-deep bg-brand-deep text-cream" : "border-line bg-card hover:bg-tint"}`}
+            >
+              {p}
+            </button>
+          )
+        )}
+        <button
+          type="button"
+          disabled={page >= pageCount}
+          onClick={() => onPage(page + 1)}
+          aria-label="Next page"
+          className={`${pill} border-line bg-card px-2 disabled:opacity-40 cursor-pointer`}
+        >
+          <ChevronRight className="w-4 h-4" />
+        </button>
+      </div>
+    </nav>
+  );
+}
+
+/** Deleting removes the order for good, so say exactly what it does and doesn't undo. */
+function confirmDelete(order: AdminOrder) {
+  const paid =
+    order.status === "paid"
+      ? `\n\nThis order was paid. Deleting it does NOT refund the customer on Paystack${order.smartsale.status === "sent" ? " or remove the sale from the POS" : ""}.`
+      : "";
+  return window.confirm(
+    `Delete order ${order.reference} (${order.customer.fullName}, ${formatGHS(order.total)}) from the database?${paid}\n\nThis can't be undone.`
   );
 }
 
@@ -341,7 +502,19 @@ function PosBadge({ order }: { order: AdminOrder }) {
   );
 }
 
-function OrderDrawer({ reference, posSending, onClose }: { reference: string; posSending: boolean; onClose: () => void }) {
+function OrderDrawer({
+  reference,
+  posSending,
+  onClose,
+  onDelete,
+  deleting,
+}: {
+  reference: string;
+  posSending: boolean;
+  onClose: () => void;
+  onDelete: (order: AdminOrder) => void;
+  deleting: boolean;
+}) {
   const trpc = useTRPC();
   const queryClient = useQueryClient();
   const order = useQuery(trpc.admin.orders.get.queryOptions({ reference }));
@@ -497,7 +670,7 @@ function OrderDrawer({ reference, posSending, onClose }: { reference: string; po
               <dl className="mt-3 space-y-1.5">
                 <Row label="Subtotal" money>{formatGHS(o.subtotal)}</Row>
                 {o.fulfilment.method === "delivery" && <Row label="Delivery" money>{formatGHS(o.deliveryFee)}</Row>}
-                {(o.platformFee ?? 0) > 0 && <Row label="Service fee" money>{formatGHS(o.platformFee ?? 0)}</Row>}
+                <Row label="Platform fee" money>{formatGHS(o.platformFee ?? 0)}</Row>
                 {o.discount && (
                   <Row label={`Discount (${o.discount.code})`} money>
                     −{formatGHS(o.discount.amount)}
@@ -533,6 +706,19 @@ function OrderDrawer({ reference, posSending, onClose }: { reference: string; po
                 {o.smartsale.error && <Row label="Last error">{o.smartsale.error}</Row>}
               </dl>
             </Section>
+
+            <div className="pt-4 border-t border-line">
+              <button
+                type="button"
+                onClick={() => onDelete(o)}
+                disabled={deleting}
+                className="inline-flex items-center gap-2 rounded-full border border-tomato/40 px-4 py-2.5 font-semibold text-tomato-dark hover:bg-tomato-soft disabled:opacity-50 cursor-pointer"
+              >
+                {deleting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                Delete order
+              </button>
+              <p className="mt-2 text-xs text-subtle">Removes it from the database for good. It doesn&apos;t refund a payment.</p>
+            </div>
           </div>
         )}
       </div>
@@ -592,7 +778,7 @@ function downloadCsv(rows: AdminOrder[], from: string, to: string) {
     "Items",
     "Subtotal",
     "Delivery",
-    "Service fee",
+    "Platform fee",
     "Discount",
     "Total",
     "Payment",

@@ -3,8 +3,6 @@ import { Fredoka, Inter_Tight } from "next/font/google";
 import { SHOP } from "@bobashop/api/data/shop";
 
 import "../index.css";
-import Header from "@/components/header";
-import Footer from "@/components/footer";
 import Providers from "@/components/providers";
 import { accountsEnabled } from "@/features";
 
@@ -34,12 +32,9 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={`${fredoka.variable} ${interTight.variable} antialiased bg-paper text-ink min-h-screen flex flex-col`}>
+        {/* The shop's header and footer live in (site)/layout.tsx; the admin has its own. */}
         <Providers accountsEnabled={accountsEnabled}>
-          <div className="flex-1 flex flex-col">
-            <Header />
-            <main className="flex-1">{children}</main>
-            <Footer />
-          </div>
+          <div className="flex-1 flex flex-col">{children}</div>
         </Providers>
       </body>
     </html>

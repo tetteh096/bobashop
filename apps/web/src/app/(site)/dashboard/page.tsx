@@ -1,7 +1,7 @@
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
-import { auth } from "../../services";
+import { auth } from "@/services";
 import Dashboard from "./dashboard";
 
 export default async function DashboardPage() {

@@ -408,7 +408,7 @@ export const ordersRouter = router({
         items,
         subtotal,
         deliveryFee,
-        ...(platformFee > 0 && { platformFee }),
+        platformFee,
         ...(rule && { discount: { code: rule.code, label: rule.label, amount: discount, ...(rule.kind === "percent" && { percent: rule.value }) } }),
         total,
         currency: "GHS",

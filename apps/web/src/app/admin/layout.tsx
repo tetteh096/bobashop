@@ -1,22 +1,32 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 
-import { AdminNav } from "./admin-nav";
+import { AdminAccount, AdminNav } from "./admin-nav";
 
 export const metadata: Metadata = {
   title: "Admin | Bobalicious",
   robots: { index: false, follow: false },
 };
 
+/** The back office: its own top bar, none of the shop's header, footer or bag. */
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="max-w-[1400px] mx-auto px-4 sm:px-8 pt-6 pb-24">
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line pb-4 mb-6">
-        <p className="font-display text-xl">
-          Bobalicious <span className="text-subtle font-sans text-sm font-semibold uppercase tracking-wider">Admin</span>
-        </p>
-        <AdminNav />
-      </div>
-      {children}
+    <div className="min-h-screen flex flex-col bg-paper">
+      <header className="sticky top-0 z-40 bg-brand-deep text-cream print:hidden">
+        <div className="max-w-[1600px] mx-auto px-4 sm:px-8 h-16 flex items-center gap-6">
+          <Link href="/admin" className="font-display text-xl shrink-0 hidden sm:block">
+            Bobalicious <span className="text-gold text-sm font-sans font-semibold uppercase tracking-wider">Admin</span>
+          </Link>
+          <AdminNav />
+          <div className="ml-auto flex items-center gap-3">
+            <Link href="/" className="hidden sm:inline text-sm font-semibold text-cream/80 hover:text-cream">
+              View shop ↗
+            </Link>
+            <AdminAccount />
+          </div>
+        </div>
+      </header>
+      <main className="flex-1 w-full max-w-[1600px] mx-auto px-4 sm:px-8 py-8 print:p-0 print:max-w-none">{children}</main>
     </div>
   );
 }

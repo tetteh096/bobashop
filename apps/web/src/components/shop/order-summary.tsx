@@ -94,12 +94,10 @@ export function OrderSummary({
             )}
           </dd>
         </div>
-        {platformFee > 0 && (
-          <div className="flex justify-between">
-            <dt className="text-subtle">Service fee</dt>
-            <dd className="font-semibold">{formatGHS(platformFee)}</dd>
-          </div>
-        )}
+        <div className="flex justify-between">
+          <dt className="text-subtle">Platform fee</dt>
+          <dd className="font-semibold">{formatGHS(platformFee)}</dd>
+        </div>
         {discount > 0 && rule && (
           <div className="flex justify-between">
             <dt className="text-subtle">

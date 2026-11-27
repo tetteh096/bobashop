@@ -2,6 +2,7 @@ import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 
 import { adminProcedure, router } from "../index";
+import { roundMoney } from "../pricing";
 import {
   confirmOrderPayment,
   MAX_POS_ATTEMPTS,
@@ -87,9 +88,124 @@ async function findOrder(orders: ReturnType<typeof ordersCollection>, reference:
   return order;
 }
 
+const DAY_MS = 86_400_000;
+
+/** One day's orders (Ghana runs on UTC all year, so a UTC day is the shop's day). */
+function dayFilter(date: string, branchId?: string): OrderFilter {
+  const start = new Date(`${date}T00:00:00Z`);
+  return {
+    createdAt: { $gte: start, $lt: new Date(start.getTime() + DAY_MS) },
+    ...(branchId && { "branch.id": branchId }),
+  };
+}
+
+function previousDay(date: string) {
+  return new Date(new Date(`${date}T00:00:00Z`).getTime() - DAY_MS).toISOString().slice(0, 10);
+}
+
+/** The end-of-day report: what was sold, how it was paid, and what still needs a hand. */
+export async function dailySummary(orders: ReturnType<typeof ordersCollection>, date: string, branchId?: string) {
+  const [day, before, allBranches] = await Promise.all([
+    orders.find(dayFilter(date, branchId)).sort({ createdAt: 1 }).limit(10_000).toArray(),
+    orders.find({ $and: [dayFilter(previousDay(date), branchId), { status: "paid" }] }).project<{ total: number }>({ total: 1 }).toArray(),
+    orders.distinct("branch"),
+  ]);
+  const paid = day.filter((o) => o.status === "paid");
+  const sum = (list: OrderDocument[], pick: (o: OrderDocument) => number) => roundMoney(list.reduce((n, o) => n + pick(o), 0));
+
+  const items = new Map<string, { name: string; quantity: number; revenue: number }>();
+  for (const order of paid) {
+    for (const line of order.items) {
+      const entry = items.get(line.name) ?? { name: line.name, quantity: 0, revenue: 0 };
+      entry.quantity += line.quantity;
+      entry.revenue = roundMoney(entry.revenue + line.lineTotal);
+      items.set(line.name, entry);
+    }
+  }
+
+  const channels = new Map<string, { channel: string; orders: number; total: number }>();
+  for (const order of paid) {
+    const channel = order.payment?.channel ?? "unknown";
+    const entry = channels.get(channel) ?? { channel, orders: 0, total: 0 };
+    entry.orders += 1;
+    entry.total = roundMoney(entry.total + order.total);
+    channels.set(channel, entry);
+  }
+
+  const branches = new Map<string, { id: string; name: string; orders: number; total: number }>();
+  for (const order of paid) {
+    const entry = branches.get(order.branch.id) ?? { id: order.branch.id, name: order.branch.name, orders: 0, total: 0 };
+    entry.orders += 1;
+    entry.total = roundMoney(entry.total + order.total);
+    branches.set(order.branch.id, entry);
+  }
+
+  const hours = Array.from({ length: 24 }, (_, hour) => ({ hour, orders: 0, total: 0 }));
+  for (const order of paid) {
+    const slot = hours[order.createdAt.getUTCHours()]!;
+    slot.orders += 1;
+    slot.total = roundMoney(slot.total + order.total);
+  }
+
+  const byMethod = (method: "delivery" | "pickup") => {
+    const list = paid.filter((o) => o.fulfilment.method === method);
+    return { orders: list.length, total: sum(list, (o) => o.total) };
+  };
+
+  const revenue = sum(paid, (o) => o.total);
+  return {
+    date,
+    branchOptions: (allBranches as OrderDocument["branch"][])
+      .filter((b) => b?.id)
+      .filter((b, i, all) => all.findIndex((x) => x.id === b.id) === i)
+      .map((b) => ({ id: b.id, name: b.name })),
+    revenue,
+    previousRevenue: roundMoney(before.reduce((n, o) => n + o.total, 0)),
+    paidOrders: paid.length,
+    averageOrder: paid.length ? roundMoney(revenue / paid.length) : 0,
+    itemsSold: paid.reduce((n, o) => n + o.items.reduce((q, i) => q + i.quantity, 0), 0),
+    breakdown: {
+      subtotal: sum(paid, (o) => o.subtotal),
+      delivery: sum(paid, (o) => o.deliveryFee),
+      platform: sum(paid, (o) => o.platformFee ?? 0),
+      discounts: sum(paid, (o) => o.discount?.amount ?? 0),
+    },
+    delivery: byMethod("delivery"),
+    pickup: byMethod("pickup"),
+    counts: {
+      placed: day.length,
+      paid: paid.length,
+      awaitingPayment: day.filter((o) => o.status === "pending_payment").length,
+      failed: day.filter((o) => o.status === "payment_failed").length,
+      inPos: paid.filter((o) => o.smartsale.status === "sent").length,
+      notInPos: paid.filter((o) => o.smartsale.status !== "sent").length,
+    },
+    topItems: [...items.values()].sort((a, b) => b.quantity - a.quantity || b.revenue - a.revenue),
+    channels: [...channels.values()].sort((a, b) => b.total - a.total),
+    branches: [...branches.values()].sort((a, b) => b.total - a.total),
+    hours,
+    /** Paid orders the branch may not have: worth a look before closing up. */
+    needsAttention: day
+      .filter((o) => (o.status === "paid" && o.smartsale.status !== "sent") || o.status === "pending_payment")
+      .map((o) => ({
+        reference: o.reference,
+        customer: o.customer.fullName,
+        total: o.total,
+        createdAt: o.createdAt.toISOString(),
+        problem: o.status === "paid" ? ("not_in_pos" as const) : ("awaiting_payment" as const),
+      })),
+  };
+}
+export type DailySummary = Awaited<ReturnType<typeof dailySummary>>;
+
 export const adminRouter = router({
   /** Who's signed in, for the admin header. Also proves the caller is an admin. */
   me: adminProcedure.query(({ ctx }) => ({ name: ctx.session.user.name, email: ctx.session.user.email })),
+
+  /** The end-of-day report for one day, for every branch or one. */
+  summary: adminProcedure
+    .input(z.object({ date: z.iso.date(), branchId: z.string().max(80).optional() }))
+    .query(({ ctx, input }) => dailySummary(ordersCollection(ctx.db), input.date, input.branchId)),
 
   orders: router({
     list: adminProcedure
@@ -188,6 +304,18 @@ export const adminRouter = router({
       }
       await sendToPos(orders, ctx.smartsale, input.reference);
       return toAdminOrder(await findOrder(orders, input.reference));
+    }),
+
+    /**
+     * Removes an order from the database for good (test orders, duplicates). It is not marked
+     * deleted; it is gone. Nothing else changes: a payment isn't refunded on Paystack and a sale
+     * already in the POS stays there. A late Paystack webhook for it is logged and ignored.
+     */
+    delete: adminProcedure.input(z.object({ reference: z.string().min(1) })).mutation(async ({ ctx, input }) => {
+      const { deletedCount } = await ordersCollection(ctx.db).deleteOne({ reference: input.reference });
+      if (deletedCount === 0) throw new TRPCError({ code: "NOT_FOUND", message: `No order ${input.reference}.` });
+      console.info(`Admin: ${ctx.session.user.email} deleted order ${input.reference}`);
+      return { reference: input.reference };
     }),
   }),
 });
